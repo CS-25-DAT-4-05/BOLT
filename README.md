@@ -2,6 +2,13 @@
 
 A domain-specific language (DSL) designed to simplify GPU programming by providing high-level abstractions for CUDA development while maintaining familiar imperative syntax.
 
+
+## Contributing
+
+This project was developed as part of Aalborg University's 4th semester Computer Science program. The language specification and formal semantics are detailed in our project report.
+
+**Note**: BOLT is an academic project demonstrating DSL design principles. While functional, it is primarily intended for educational purposes and research into GPU programming language design.
+
 ## Overview
 
 BOLT addresses the complexity barrier in GPU programming by offering explicit but minimal abstractions for GPU execution. The language targets developers who are familiar with imperative programming but lack specialized knowledge in parallel computing or hardware-oriented programming.
@@ -150,11 +157,3 @@ ComplexType =
 For the complete grammar specification, see the project report
 
 
-## Contributing
-
-This project was developed as part of Aalborg University's 4th semester Computer Science program. The language specification and formal semantics are detailed in our project report.
-
-### Development Team
-
-
-**Note**: BOLT is an academic project demonstrating DSL design principles. While functional, it is primarily intended for educational purposes and research into GPU programming language design.
