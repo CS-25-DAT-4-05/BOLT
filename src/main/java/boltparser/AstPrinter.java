@@ -11,7 +11,7 @@ import java.util.ArrayList;
 import Lib.Pair;
 
 /**
- * Pretty printer for BOLT Abstract Syntax Trees.
+ * BOLT Abstract Syntax Trees Printer
  * Supports printing complete Prog structures with chained function definitions.
  */
 public class AstPrinter {
@@ -44,17 +44,7 @@ public class AstPrinter {
         return sb.toString();
     }
 
-    /**
-     * Legacy method for printing individual statements.
-     * Kept for backward compatibility.
-     * @param stmt The statement to print
-     * @return Formatted string representation
-     */
-    public String print(Stmt stmt) {
-        sb = new StringBuilder();
-        printStmt(stmt);
-        return sb.toString();
-    }
+
 
     private void printProg(Prog prog) {
         if (prog == null) {

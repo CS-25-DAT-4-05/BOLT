@@ -38,10 +38,10 @@ public class TypeChecker {
             return;
         }
 
-        // Step 1: Build global function environment
+        // 1: build global function environment
         globalEnv = buildFunctionEnvironment(program);
 
-        // Step 2: Check all function definitions
+        // 2: check all function definitions
         checkDefinitions(program.func);
 
         if (hasErrors()) {
@@ -272,7 +272,7 @@ public class TypeChecker {
             case TIMES:
             case DIV:
                 if (isNumericType(leftType) && isNumericType(rightType)) {
-                    // Return the "wider" type (double if either is double, int otherwise)
+                    // OBS: Return the "wider" type (double if either is double, int otherwise)
                     if (isDoubleType(leftType) || isDoubleType(rightType)) {
                         return new SimpleType(SimpleTypesEnum.DOUBLE);
                     }

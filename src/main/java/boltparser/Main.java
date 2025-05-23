@@ -12,9 +12,9 @@ public class Main {
         }
 
         String filename = args[0];
-        System.out.println("╔══════════════════════════════════════════════════════════════╗");
-        System.out.println("║                        BOLT Compiler                         ║");
-        System.out.println("╚══════════════════════════════════════════════════════════════╝");
+
+        System.out.println("                        BOLT Compiler                         ");
+        System.out.println("══════════════════════════════════════════════════════════════");
         System.out.println("Working Directory: " + System.getProperty("user.dir"));
         System.out.println("Input file: " + filename);
 
