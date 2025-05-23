@@ -72,9 +72,7 @@ func: tensor[int, n] scale(tensor[int, n] input, int factor) {
 
 BOLT implements a strong, static type system with:
 - Simple types: `int`, `double`, `char`, `bool`
-- Complex types: parameterized tensors with compile-time dimension checking
-- Function types with generic parameter support
-- Type environment management for scoped variables
+- Complex types.
 
 
 ## Getting Started
@@ -86,12 +84,6 @@ BOLT implements a strong, static type system with:
 - Coco/R parser generator
 
 ### Building BOLT
-
-```bash
-git clone https://github.com/your-org/bolt-language
-cd bolt-language
-javac -cp ".:lib/*" boltparser/*.java AbstractSyntax/*/*.java SemanticAnalysis/*.java
-```
 
 ### Running the Compiler
 
