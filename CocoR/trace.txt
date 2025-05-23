@@ -1,0 +1,248 @@
+
+Cross reference list:
+--------------------
+
+  "!"           568
+  "!="          511
+  "%"           557
+  "&&"          498
+  "("           166  288  295  398  433  586  632
+  ")"           182  292  299  400  435  594  634
+  "*"           554
+  "+"           540
+  ","           174  266  290  294  297  353  360  362  369  372  590  600  652
+                660
+  "-"           541  571
+  ".*"          555
+  "/"           556
+  ";"           194  239  240
+  "<"           524
+  "<="          525
+  "="           251  272
+  "=="          510
+  ">"           526
+  ">="          527
+  "["           263  287  351  358  367  597  635  648  653
+  "]"           269  301  355  364  375  603  639  650  655
+  "bool"        337
+  "char"        336
+  "defer"       286
+  "do"          401
+  "double"      334
+  "else"        453
+  "false"       631
+  "func:"       154
+  "if"          432
+  "int"         335
+  "matrix"      357
+  "return"      185
+  "tensor"      366
+  "then"        436
+  "true"        630
+  "vector"      350
+  "void"        338
+  "while"       397
+  "{"           183  302  402  437  454
+  "||"          487
+  "}"           195  311  416  451  468
+  AdditiveExpr -533  521  529
+  AndExpressio -492  485  488
+  Assignment   -256  240
+  BOLT         -105
+  CHARLIT       609
+  ComplexType  -342  325
+  DOUBLENUM     608
+  Declaration  -244  239
+  DeferStateme -279  214  308  408  443  460
+  EqualityExpr -503  496  499
+  Expression   -477  187  252  264  267  273  399  434  588  591  598  601  633
+                658  661
+  FormalParame -226  168  175
+  FunctionBody -204  184
+  FunctionDefi -140  120
+  IDENT         165  231  249  261  289  296  385  583
+  INTNUM        384  607
+  IfStatement  -423  213  307  407  442  459
+  Multiplicati -547  537  543
+  OrExpression -481  478
+  Primary      -578  574
+  Program      -110  106
+  RelationalEx -517  507  513
+  SimpleStatem -234  211  305  405  440  457
+  SimpleType   -329  323  352  359  368
+  SizeExpressi -379  291  298  354  361  363  370  373
+  TensorElemen -643  637  649  654
+  Type         -318  155  230  248
+  UnaryExpress -563  551  559  569  572
+  WhileStateme -389  212  306  406  441  458
+
+
+
+---------- states ----------
+                0: #C  1
+                   digit  8
+                    39  4
+                   'f' 33
+                   '(' 10
+                   ',' 11
+                   ')' 12
+                   '{' 13
+                   ';' 14
+                   '}' 15
+                   '=' 34
+                   '[' 16
+                   ']' 17
+                   '|' 18
+                   '&' 20
+                   '!' 35
+                   '<' 36
+                   '>' 37
+                   '+' 26
+                   '-' 27
+                   '*' 28
+                   '.' 29
+                   '/' 31
+                   '%' 32
+E(IDENT       ) 1: #B  1
+                2: digit  3
+E(DOUBLENUM   ) 3: digit  3
+                4: any  5
+                    92  6
+                5:  39  7
+                6: anyChar  5
+E(CHARLIT     ) 7:
+E(INTNUM      ) 8: digit  8
+                   '.'  2
+E("func:"     ) 9:
+E("("         )10:
+E(","         )11:
+E(")"         )12:
+E("{"         )13:
+E(";"         )14:
+E("}"         )15:
+E("["         )16:
+E("]"         )17:
+               18: '|' 19
+E("||"        )19:
+               20: '&' 21
+E("&&"        )21:
+E("=="        )22:
+E("!="        )23:
+E("<="        )24:
+E(">="        )25:
+E("+"         )26:
+E("-"         )27:
+E("*"         )28:
+               29: '*' 30
+E(".*"        )30:
+E("/"         )31:
+E("%"         )32:
+E(IDENT       )33: #D  1
+                   'u' 38
+E("="         )34: '=' 22
+E("!"         )35: '=' 23
+E("<"         )36: '=' 24
+E(">"         )37: '=' 25
+E(IDENT       )38: #E  1
+                   'n' 39
+E(IDENT       )39: #F  1
+                   'c' 40
+E(IDENT       )40: #B  1
+                   ':'  9
+
+---------- character classes ----------
+letter:   'A'..'Z' 'a'..'z' 
+digit:    '0'..'9' 
+lf:       10 
+cr:       13 
+tab:      9 
+any:      0..9 11..12 14..'&' '('..'[' ']'..65535 
+anyChar:  0..65535 
+#A:       '0'..'9' 'A'..'Z' 'a'..'z' 
+#B:       '0'..'9' 'A'..'Z' '_' 'a'..'z' 
+#C:       'A'..'Z' 'a'..'e' 'g'..'z' 
+#D:       '0'..'9' 'A'..'Z' '_' 'a'..'t' 'v'..'z' 
+#E:       '0'..'9' 'A'..'Z' '_' 'a'..'m' 'o'..'z' 
+#F:       '0'..'9' 'A'..'Z' '_' 'a'..'b' 'd'..'z' 
+
+Symbol Table:
+------------
+
+ nr name           typ  hasAt graph  del   line tokenKind
+  0 EOF            t    false                 0 fixedToken
+  1 IDENT          t    false                91 classLitToken
+  2 INTNUM         t    false                92 classToken
+  3 DOUBLENUM      t    false                93 classToken
+  4 CHARLIT        t    false                94 classToken
+  5 "func:"        t    false               154 fixedToken
+  6 "("            t    false               166 fixedToken
+  7 ","            t    false               174 fixedToken
+  8 ")"            t    false               182 fixedToken
+  9 "{"            t    false               183 fixedToken
+ 10 "return"       t    false               185 litToken
+ 11 ";"            t    false               194 fixedToken
+ 12 "}"            t    false               195 fixedToken
+ 13 "="            t    false               251 fixedToken
+ 14 "["            t    false               263 fixedToken
+ 15 "]"            t    false               269 fixedToken
+ 16 "defer"        t    false               286 litToken
+ 17 "double"       t    false               334 litToken
+ 18 "int"          t    false               335 litToken
+ 19 "char"         t    false               336 litToken
+ 20 "bool"         t    false               337 litToken
+ 21 "void"         t    false               338 litToken
+ 22 "vector"       t    false               350 litToken
+ 23 "matrix"       t    false               357 litToken
+ 24 "tensor"       t    false               366 litToken
+ 25 "while"        t    false               397 litToken
+ 26 "do"           t    false               401 litToken
+ 27 "if"           t    false               432 litToken
+ 28 "then"         t    false               436 litToken
+ 29 "else"         t    false               453 litToken
+ 30 "||"           t    false               487 fixedToken
+ 31 "&&"           t    false               498 fixedToken
+ 32 "=="           t    false               510 fixedToken
+ 33 "!="           t    false               511 fixedToken
+ 34 "<"            t    false               524 fixedToken
+ 35 "<="           t    false               525 fixedToken
+ 36 ">"            t    false               526 fixedToken
+ 37 ">="           t    false               527 fixedToken
+ 38 "+"            t    false               540 fixedToken
+ 39 "-"            t    false               541 fixedToken
+ 40 "*"            t    false               554 fixedToken
+ 41 ".*"           t    false               555 fixedToken
+ 42 "/"            t    false               556 fixedToken
+ 43 "%"            t    false               557 fixedToken
+ 44 "!"            t    false               568 fixedToken
+ 45 "true"         t    false               630 litToken
+ 46 "false"        t    false               631 litToken
+ 47 ???            t    false                 0 fixedToken
+  0 BOLT           nt   false     1 true    105 fixedToken
+  1 Program        nt   false     4 true    110 fixedToken
+  2 FunctionDefi   nt   false    12 false   140 fixedToken
+  3 Type           nt   false   118 false   318 fixedToken
+  4 FormalParame   nt   false    50 false   226 fixedToken
+  5 FunctionBody   nt   false    39 true    204 fixedToken
+  6 Expression     nt   false   238 false   477 fixedToken
+  7 SimpleStatem   nt   false    53 false   234 fixedToken
+  8 WhileStateme   nt   false   182 false   389 fixedToken
+  9 IfStatement    nt   false   203 false   423 fixedToken
+ 10 DeferStateme   nt   false    85 false   279 fixedToken
+ 11 Declaration    nt   false    60 false   244 fixedToken
+ 12 Assignment     nt   false    68 false   256 fixedToken
+ 13 SizeExpressi   nt   false   175 false   379 fixedToken
+ 14 SimpleType     nt   false   124 false   329 fixedToken
+ 15 ComplexType    nt   false   140 false   342 fixedToken
+ 16 OrExpression   nt   false   240 false   481 fixedToken
+ 17 AndExpressio   nt   false   247 false   492 fixedToken
+ 18 EqualityExpr   nt   false   254 false   503 fixedToken
+ 19 RelationalEx   nt   false   265 false   517 fixedToken
+ 20 AdditiveExpr   nt   false   282 false   533 fixedToken
+ 21 Multiplicati   nt   false   293 false   547 fixedToken
+ 22 UnaryExpress   nt   false   310 false   563 fixedToken
+ 23 Primary        nt   false   323 false   578 fixedToken
+ 24 TensorElemen   nt   false   379 false   643 fixedToken
+
+Literal Tokens:
+--------------
+

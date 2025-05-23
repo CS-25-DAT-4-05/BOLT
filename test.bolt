@@ -1,0 +1,67 @@
+func: int factorial(int n) {
+    int result = 1;
+    int counter = 1;
+    while (counter <= n) do {
+        result = result * counter;
+        counter = counter + 1;
+    }
+    return result;
+}
+
+func: bool isEven(int number) {
+    int remainder = number % 2;
+    bool even = remainder == 0;
+    return even;
+}
+
+func: int fibonacci(int n) {
+    int result = 0;
+    if (n <= 1) then {
+        result = n;
+    } else {
+        int prev1 = fibonacci(n - 1);
+        int prev2 = fibonacci(n - 2);
+        result = prev1 + prev2;
+    }
+    return result;
+}
+
+func: double average(int a, int b, int c) {
+    int sum = a + b + c;
+    double count = 3.0;
+    double result = sum / count;
+    return result;
+}
+
+func: int main() {
+    int num = 5;
+    bool positive = num > 0;
+    bool negative = !positive;
+
+    if (positive) then {
+        int fact = factorial(num);
+        bool evenFact = isEven(fact);
+
+        if (evenFact) then {
+            num = num * 2;
+        } else {
+            num = num + 1;
+        }
+    } else {
+        num = 0;
+    }
+
+    int fib = fibonacci(4);
+    double avg = average(10, 20, 30);
+
+    char grade = 'A';
+    bool excellent = grade == 'A';
+
+    int finalResult = num + fib;
+
+    while (finalResult > 100) do {
+        finalResult = finalResult - 10;
+    }
+
+    return finalResult;
+}
