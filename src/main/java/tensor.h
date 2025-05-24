@@ -24,6 +24,15 @@ class IntTensor{
             return components[realIndex];
         }
 
+        int assign(std::vector<int> indices, int valToAssign){
+            int realIndex = indices.back();
+            for(int i = indices.size() - 2;i >= 0 ;i--){
+                realIndex += indices[i]*dimensions[i+1];
+            }
+            components[realIndex] = valToAssign;
+            return components[realIndex];
+        }
+
         IntTensor operator+(IntTensor const& tensor){
             IntTensor res;
             res.dimensions = dimensions;
@@ -85,6 +94,15 @@ class DoubleTensor{
             for(int i = indices.size() - 2;i >= 0 ;i--){
                 realIndex += indices[i]*dimensions[i+1];
             }
+            return components[realIndex];
+        }
+
+        double assign(std::vector<int> indices, int valToAssign){
+            int realIndex = indices.back();
+            for(int i = indices.size() - 2;i >= 0 ;i--){
+                realIndex += indices[i]*dimensions[i+1];
+            }
+            components[realIndex] = valToAssign;
             return components[realIndex];
         }
 

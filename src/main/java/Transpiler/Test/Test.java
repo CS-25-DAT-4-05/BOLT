@@ -12,10 +12,11 @@ import java.util.ArrayList;
 import AbstractSyntax.Definitions.*;
 import AbstractSyntax.SizeParams.*;
 import AbstractSyntax.Types.*;
+import Lib.Pair;
 import Transpiler.Transpiler;
 import AbstractSyntax.Program.*;
 import AbstractSyntax.Statements.*;
-import Semantic.TypeChecker;
+import SemanticAnalysis.TypeChecker;
 
 
 public class Test {
@@ -54,10 +55,15 @@ public class Test {
 
         zero = new IntVal(0);
 
+        //Defer vector addition
+        
+        ArrayList<Pair<String, SizeParam>> deferDimensions = new ArrayList<>();
+        deferDimensions.add(new Pair<String, SizeParam>("xAxis", new SPInt(3)));
+        Defer parallelVectorAdditionDeferBlock = new Defer(deferDimensions, null);
+
+        //Tensor Declaration
         ArrayList<SizeParam> tensorDimSP = new ArrayList<SizeParam>();
         tensorDimSP.add(new SPInt(3));
-        tensorDimSP.add(new SPInt(2));
-        tensorDimSP.add(new SPInt(2));
         TensorType decTensorType = new TensorType(new SimpleType(SimpleTypesEnum.INT), tensorDimSP);
         ArrayList<Expr> tensorDimExpr = new ArrayList<Expr>();
         tensorDimExpr.add(new IntVal(1));

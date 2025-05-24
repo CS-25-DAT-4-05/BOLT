@@ -252,9 +252,9 @@ public class Transpiler {
                 if(!(sb.length() == 0)){
                     sb.append(',');
                 }
-                sb.append(boltToCudaTypeConverter(p.getElem1()));
+                sb.append(boltToCudaTypeConverter(p.elem1));
                 sb.append(" ");
-                sb.append(p.getElem2());
+                sb.append(p.elem2);
             }
             paramters = sb.toString();
         }
