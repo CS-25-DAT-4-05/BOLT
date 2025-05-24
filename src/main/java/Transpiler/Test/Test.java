@@ -1,7 +1,7 @@
+package Transpiler.Test;
+
 import AbstractSyntax.Expressions.*;
 
-import java.io.FileReader;
-import java.io.Reader;
 //import java.lang.reflect.Type;
 import java.util.ArrayList;
 
@@ -12,14 +12,10 @@ import java.util.ArrayList;
 import AbstractSyntax.Definitions.*;
 import AbstractSyntax.SizeParams.*;
 import AbstractSyntax.Types.*;
-import Lib.Pair;
 import Transpiler.Transpiler;
 import AbstractSyntax.Program.*;
 import AbstractSyntax.Statements.*;
 import Semantic.TypeChecker;
-
-import boltparser.Scanner;
-import boltparser.Parser;
 
 
 public class Test {
