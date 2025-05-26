@@ -1,24 +1,22 @@
 package boltparser;
 
+import AbstractSyntax.Definitions.FuncDef;
 import AbstractSyntax.Program.*;
-import SemanticAnalysis.TypeChecker;
-import Transpiler.Transpiler;
+import DataflowAnalysis.CFGBuilder;
+import DataflowAnalysis.CFGAnalysis;
 import java.io.File;
+import java.util.*;
 
 public class Main {
     public static void main(String[] args) {
         if (args.length < 1) {
-            System.out.println("Usage: java Main <input-file> [output-file]");
+            System.out.println("Usage: java Main <input-file>");
             return;
         }
 
         String filename = args[0];
-        String outputFilename = args.length > 1 ? args[1] : null;
-
-        System.out.println("                        BOLT Compiler                         ");
-        System.out.println("══════════════════════════════════════════════════════════════");
         System.out.println("Working Directory: " + System.getProperty("user.dir"));
-        System.out.println("Input file: " + filename);
+        System.out.println("Attempting to parse file: " + filename);
 
         try {
             File file = new File(filename);
@@ -27,99 +25,106 @@ public class Main {
                 return;
             }
 
-            // ═══════════════════════════════════════════════════════════════
-            // LEXICAL & SYNTACTIC ANALYSIS
-            // ═══════════════════════════════════════════════════════════════
-            System.out.println("\nStarting lexical and syntactic analysis...");
-
             Scanner scanner = new Scanner(filename);
+            System.out.println("Scanner created successfully");
+
             Parser parser = new Parser(scanner);
+            System.out.println("Parser created successfully");
+
+            System.out.println("Starting parsing...");
             parser.Parse();
+            System.out.println("Parsing completed");
 
             if (parser.hasErrors()) {
-                System.out.println("Parsing failed!");
+                System.out.println("Errors occurred during parsing!");
                 return;
             }
 
+            System.out.println("\n=== Abstract Syntax Tree - Program Structure ===\n");
             Prog ast = parser.mainNode;
             if (ast == null) {
                 System.out.println("No AST generated (empty program)");
-                return;
+            } else {
+                AstPrinter printer = new AstPrinter();
+                System.out.println(printer.printProgram(ast));
             }
 
-            System.out.println("Parsing completed successfully");
+            System.out.println("\n=== Control Flow Graph ===\n");
+            CFGBuilder builder = new CFGBuilder();
+            for (FuncDef func = ast.func; func != null; func = func.nextFunc) {
 
-            // ═══════════════════════════════════════════════════════════════
-            // AST VISUALIZATION
-            // ═══════════════════════════════════════════════════════════════
-            System.out.println("\nAbstract Syntax Tree:");
-            System.out.println("══════════════════════════════════════════════════════════════");
-            AstPrinter printer = new AstPrinter();
-            System.out.println(printer.printProgram(ast));
-
-            // ═══════════════════════════════════════════════════════════════
-            // SEMANTIC ANALYSIS (TYPE CHECKING)
-            // ═══════════════════════════════════════════════════════════════
-            System.out.println("\nStarting semantic analysis...");
-
-            TypeChecker typeChecker = new TypeChecker();
-            boolean typeCheckPassed = false;
-
-            try {
-                typeChecker.check(ast);
-                System.out.println("Type checking passed!");
-                typeCheckPassed = true;
-            } catch (RuntimeException e) {
-                System.out.println("Type checking failed!");
-                System.out.println("\nType Errors Found:");
-                System.out.println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-
-                int errorCount = 0;
-                for (String error : typeChecker.getErrors()) {
-                    errorCount++;
-                    System.err.println("  " + errorCount + ". " + error);
+                
+                System.out.println("\n\n\n-----------------------------------------------------------");
+                System.out.println("Function: " + func.procname);
+                CFGBuilder.CFGNode entry = builder.buildFunctionCFG(func);
+                
+                // Collect all nodes reachable from entry
+                Set<CFGBuilder.CFGNode> visited = new HashSet<>();
+                List<CFGBuilder.CFGNode> allNodes = new ArrayList<>();
+                collectAllNodes(entry, visited, allNodes);
+                
+                // Print raw CFG
+                printCFG(entry, new HashSet<>());
+                
+                // Run analysis
+                
+                Map<CFGBuilder.CFGNode, CFGAnalysis.Liveness> liveness = CFGAnalysis.performLiveness(allNodes);
+                Map<String, Set<CFGBuilder.CFGNode>> useDef = CFGAnalysis.computeUseDefChains(allNodes);
+                List<CFGBuilder.CFGNode> optimized = CFGAnalysis.eliminateDeadCode(allNodes, liveness);
+                
+                // Output analyses
+                System.out.println("\n-- Liveness Info --");
+                for (CFGBuilder.CFGNode node : allNodes) {
+                    CFGAnalysis.Liveness lv = liveness.get(node);
+                    System.out.println("Node " + node.id + " IN: " + lv.in + " OUT: " + lv.out);
                 }
 
-                System.out.println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-                System.err.println("Total errors: " + errorCount);
+                System.out.println("\n-- Use-Def Chains --");
+                for (String var : useDef.keySet()) {
+                    System.out.print(var + " defined at nodes: ");
+                    for (CFGBuilder.CFGNode def : useDef.get(var)) {
+                        System.out.print(def.id + " ");
+                    }
+                    System.out.println();
+                }
 
-                // Continue with transpilation even if type checking fails for testing
-                System.out.println("Continuing with transpilation for testing purposes...");
+                System.out.println("\n-- Optimized CFG (Dead Code Eliminated) --");
+                for (CFGBuilder.CFGNode node : optimized) {
+                    System.out.println("Node ID: " + node.id + ", GEN: " + node.gen + ", KILL: " + node.kill);
+                }
+
+                System.out.println("\n-- Memory Transfers --");
+                CFGAnalysis.insertMemoryTransfers(allNodes);
+                System.out.println("-----------------------------------------------------------");
             }
-
-            // ═══════════════════════════════════════════════════════════════
-            // CODE GENERATION (TRANSPILATION)
-            // ═══════════════════════════════════════════════════════════════
-            System.out.println("\nStarting code generation (transpilation to CUDA)...");
-
-            try {
-                Transpiler.TranspileProg(outputFilename, ast);
-                System.out.println("Transpilation completed successfully!");
-
-                String outputFile = outputFilename != null ? outputFilename + ".cu" : "a.cu";
-                System.out.println("Generated CUDA file: " + outputFile);
-
-            } catch (Exception e) {
-                System.err.println("Transpilation failed: " + e.getMessage());
-                e.printStackTrace();
-            }
-
-            // ═══════════════════════════════════════════════════════════════
-            // COMPILATION SUMMARY
-            // ═══════════════════════════════════════════════════════════════
-            System.out.println("\n Compilation Pipeline Status:");
-            System.out.println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-            System.out.println("✓ Lexical Analysis - Complete");
-            System.out.println("✓ Syntax Analysis - Complete");
-            System.out.println(typeCheckPassed ? "✓ Semantic Analysis - Complete" : "⚠ Semantic Analysis - Warnings");
-            System.out.println("✓ Code Generation - Complete");
 
         } catch (Exception e) {
-            System.err.println("Fatal error during compilation:");
-            System.err.println("   " + e.getMessage());
-            if (args.length > 2 && args[2].equals("--debug")) {
-                e.printStackTrace();
-            }
+            System.err.println("Error during parsing: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    private static void printCFG(CFGBuilder.CFGNode node, Set<Integer> visited) {
+        if (node == null || visited.contains(node.id)) return;
+        visited.add(node.id);
+        System.out.println("Node ID: " + node.id +
+                ", GPU: " + node.inGPUContext +
+                ", GEN: " + node.gen +
+                ", KILL: " + node.kill);
+        for (CFGBuilder.CFGNode succ : node.successors) {
+            System.out.println("  -> " + succ.id);
+        }
+        for (CFGBuilder.CFGNode succ : node.successors) {
+            printCFG(succ, visited);
+        }
+    }
+
+    private static void collectAllNodes(CFGBuilder.CFGNode node, Set<CFGBuilder.CFGNode> visited, List<CFGBuilder.CFGNode> result) {
+        if (node == null || visited.contains(node)) return;
+        visited.add(node);
+        result.add(node);
+        for (CFGBuilder.CFGNode succ : node.successors) {
+            collectAllNodes(succ, visited, result);
         }
     }
 }
