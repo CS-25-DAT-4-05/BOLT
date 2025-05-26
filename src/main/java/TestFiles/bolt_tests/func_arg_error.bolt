@@ -1,0 +1,8 @@
+func add(x: int, y: int): int {
+    return x + y;
+}
+
+func main(): int {
+    int z = add(1);  // missing argument
+    return z;
+}

@@ -25,7 +25,7 @@ public class TestTypeChecker {
         System.out.print("Test: " + filePath + " — ");
         try {
             //Open input file
-            FileInputStream in = new FileInputStream("TestFiles/" + filePath);
+            FileInputStream in = new FileInputStream(filePath);
 
             //Create Scanner and Parser
             Scanner scanner = new Scanner(in);
@@ -35,6 +35,9 @@ public class TestTypeChecker {
             parser.Parse(); //This is the default Coco/R entry point
             Prog prog = parser.mainNode; //Mainnode contains the constructed AST root node
 
+            if (prog == null) {
+                throw new RuntimeException("Parsed program is null — check the .bolt file for syntax or structure errors.");
+            }
 
             //Run Typechecking on AST
             new TypeChecker().check(prog);

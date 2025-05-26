@@ -1,0 +1,7 @@
+func int main() {
+    int x = 5;
+    defer([i, 4]) {
+        int y = x + i;
+    };
+    return 0;
+};

@@ -20,6 +20,7 @@ public class TypeChecker {
     private final List<TypeError> errors = new ArrayList<>();
     private TypeEnvironment globalEnv;
     private Map<String, FuncDef> functionDefinitions = new HashMap<>(); // stores function definitions
+    private boolean inDefer = false; //Tracks whether we are currently inside a "defer" block to restrict outer variable access
 
     public boolean hasErrors() {
         return !errors.isEmpty();
@@ -166,6 +167,25 @@ public class TypeChecker {
                 }
             }
         }
+            //Handle variable declarations, example; int x = 5;
+            else if (stmt instanceof Declaration) {
+                //Cast the generic statement to a Declaration node
+                Declaration decl = (Declaration) stmt;
+                //Get the Line Number for error reporting
+                int line = getLineNumber(stmt);
+                 //If the declaration includes an initializer expression, again example int x = 5;
+                if (decl.expr != null) {
+                    //Type check the expression being assigned to the declared variable
+                    Type exprType = checkExpr(decl.expr, env);
+                    //Compare declared type with the initializer's type
+                    if (exprType != null && !isCompatible(decl.t, exprType)) {
+                        //We report a type mismatch error
+                        addError("Type mismatch in declaration", line,
+                            "Variable '" + decl.ident + "' declared as " + typeToString(decl.t) +
+                            " but initialized with " + typeToString(exprType));
+                    }
+                }
+            }
 
         else if (stmt instanceof Comp) {
             Comp comp = (Comp) stmt;
@@ -237,9 +257,11 @@ public class TypeChecker {
                 String threadVar = dim.elem1;
                 deferEnv.bind(threadVar, new SimpleType(SimpleTypesEnum.INT));
             }
-
-            // Check defer body in new scope
+            //Enable defer mode to restrict outer variable access during defer body checking
+            boolean previous = inDefer;
+            inDefer = true;
             checkStmt(defer.stmt, deferEnv, functionContext);
+            inDefer = previous;
         }
     }
 
@@ -365,9 +387,10 @@ public class TypeChecker {
             // Look up function definition for parameter checking
             FuncDef funcDef = functionDefinitions.get(funcCall.name);
             if (funcDef == null) {
-                // Could be a built-in function - for now just return the type
+                addError("Undefined function", getLineNumber(expr),
+                    "Function '" + funcCall.name + "' is not declared");
+                    return null;
                 // TODO: Add built-in function parameter checking later
-                return funcType;
             }
 
             // Check argument count
@@ -608,21 +631,22 @@ public class TypeChecker {
                 SizeParam dim1 = tensor1.dimensions.get(i);
                 SizeParam dim2 = tensor2.dimensions.get(i);
 
-                // For now, only check if both are integer literals
-                if (dim1 instanceof SPInt && dim2 instanceof SPInt) {
-                    SPInt spInt1 = (SPInt) dim1;
-                    SPInt spInt2 = (SPInt) dim2;
-                    if (spInt1.value != spInt2.value) {
-                        return false;
-                    }
+                //For now, we only check if both are integer literals
+            if (dim1 instanceof SPInt && dim2 instanceof SPInt) {
+                SPInt spInt1 = (SPInt) dim1;
+                SPInt spInt2 = (SPInt) dim2;
+                if (spInt1.value != spInt2.value) {
+                    return false;
                 }
+            } else {
                 // TODO: Handle parametric dimensions (SPIdent)
+                return false;
             }
 
             return true;
+            }
         }
-
-        return false;
+    return true;
     }
 
     private boolean isNumericType(Type type) {

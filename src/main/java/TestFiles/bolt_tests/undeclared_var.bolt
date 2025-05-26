@@ -1,0 +1,4 @@
+func main(): int {
+    int x = y;  // 'y' is undeclared
+    return 0;
+}
