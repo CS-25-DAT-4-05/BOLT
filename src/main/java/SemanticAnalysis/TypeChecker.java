@@ -308,6 +308,60 @@ public class TypeChecker {
                 return null;
             }
 
+            //We handle built-in functions manually 
+            //Check if this is a call to the built-in 'zeros' function
+            if (funcCall.name.equals("zeros")) {
+                //"zeros" must take EXACTLY 2 integer arguments, example; zeros(3, 4)
+                if (funcCall.actualParameters.size() != 2) {
+                    addError("Built-in function 'zeros' expects 2 integer arguments", getLineNumber(expr));
+                    return null;
+                }
+
+                //We type check both arguments
+                Type arg1 = checkExpr(funcCall.actualParameters.get(0), env);
+                Type arg2 = checkExpr(funcCall.actualParameters.get(1), env);
+
+                //Both arguments must be integers.
+                if (!isIntType(arg1) || !isIntType(arg2)) {
+                    addError("'zeros' arguments most be integers", getLineNumber(expr));
+
+                    return null;
+                }
+
+                //Create a 2D tensor of type int with unknown sizes (null as the placeholders.)
+                ArrayList<SizeParam> dims = new ArrayList<>();
+                dims.add(null); //Placeholder for dimension 1
+                dims.add(null); //Placeholder for dimension 2
+
+                return new TensorType(new SimpleType(SimpleTypesEnum.INT), dims);
+            }
+            //Same structure as "zeros". Now for the built in "ones" function
+            if (funcCall.name.equals("ones")) {
+                //Handle built-in 'ones' function that creates a 2D tensor filled with ones
+                //Check that exactly two arguments are provided
+                if (funcCall.actualParameters.size() != 2) {
+                    addError("Built-in function 'ones' expects 2 integer arguments ", getLineNumber(expr));
+                    return null;
+                }
+
+                //We type check both arguments
+                Type arg1 = checkExpr(funcCall.actualParameters.get(0), env);
+                Type arg2 = checkExpr(funcCall.actualParameters.get(1), env);
+
+                //Both arguments must be integers, example; ones(3, 4)
+                if (!isIntType(arg1) || !isIntType(arg2)) {
+                    addError("'ones' arguments must be integers", getLineNumber(expr));
+                    return null;
+                }
+
+                //Return a 2D tensor of the ints
+                ArrayList<SizeParam> dims = new ArrayList<>();
+                dims.add(null); //Unknown actual size at typecheck time
+                dims.add(null);
+
+                return new TensorType(new SimpleType(SimpleTypesEnum.INT), dims);
+            }
+
             // Look up function definition for parameter checking
             FuncDef funcDef = functionDefinitions.get(funcCall.name);
             if (funcDef == null) {
