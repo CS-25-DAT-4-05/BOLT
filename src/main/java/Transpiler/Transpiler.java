@@ -140,6 +140,20 @@ public class Transpiler {
                 String type = boltToCudaTypeConverter(dec.t);
                 ident = dec.ident;
                 expr = transpileExpr(dec.expr, dec.t);
+
+                // Check LHS for illegal assignment in Defer
+                if (forbiddenIdentifiersInDefer != null && forbiddenIdentifiersInDefer.contains(ident)) {
+                    throw new Exception("[ERROR] Assignment to forbidden identifier '" + ident + "' inside defer block. (Multiple Versioning Error)");
+                }
+
+                // Check RHS for forbidden identifiers (simple string containment as a start)
+                for (String forbidden : forbiddenIdentifiersInDefer) {
+                    if (expr.contains(forbidden)) {
+                        throw new Exception("[ERROR] Assignment with forbidden identifier '" + ident + "' inside defer block. (Multiple Versioning Error)");
+                    }
+                }
+
+
                 fWriter.append(type + " " + ident + " = " + expr + ";\n");
                 transpileStmt(fWriter, dec.stmt, null);
                 break;
