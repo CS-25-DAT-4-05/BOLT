@@ -76,7 +76,13 @@ public class Transpiler {
                 for (String threadVarBinding : kernelThreadVarBindList) {
                     String cudaAxis = dimensionalCudaAxis.get(kernelThreadVarBindList.indexOf(threadVarBinding));
                     kfWriter.append("\tint " + threadVarBinding + " = blockIdx." + cudaAxis + " * blockDim." + cudaAxis + " + threadIdx." + cudaAxis + ";\n");
+
+                    //Inserting the check for threadIds on each dimension, so that threads dont work out of scope
+                    String dimLimit = transpileSizeParameters(deferBlock.elem1.dim.get(kernelThreadVarBindList.indexOf(threadVarBinding)).elem2);
+                    kfWriter.append("\tif(" + threadVarBinding + " > " + dimLimit + "){ return; }");
                 }
+
+                
 
                 //Transpile the statements in the Defer block inside the Kernel
                 transpileStmt(kfWriter, null, kernelThreadVarBindList);
