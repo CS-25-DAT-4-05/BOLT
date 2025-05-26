@@ -1,12 +1,14 @@
 package SemanticAnalysis;
 
-import AbstractSyntax.Statements.*;
-import AbstractSyntax.Expressions.*;
-import AbstractSyntax.Types.*;
 import AbstractSyntax.Definitions.*;
+import AbstractSyntax.Expressions.*;
 import AbstractSyntax.Program.*;
+import AbstractSyntax.SizeParams.SizeParam;
+import AbstractSyntax.Statements.*;
+import AbstractSyntax.Types.*;
 import Lib.Pair;
 import java.util.*;
+
 
 /*
 TODO::
@@ -19,6 +21,7 @@ Implement the y-mapping system for parameterized tensors from formal type rules
 public class TypeChecker {
     private final List<TypeError> errors = new ArrayList<>();
     private TypeEnvironment globalEnv;
+    private FuncDef rootFuncDef; //Reference to the root of the function definitions linked list
 
     public boolean hasErrors() {
         return !errors.isEmpty();
@@ -37,6 +40,8 @@ public class TypeChecker {
             addError("Program is null", 0);
             return;
         }
+
+        this.rootFuncDef = program.func; //We store the top-level function list for later lookup (We use this when type checking function calls)
 
         // 1: build global function environment
         globalEnv = buildFunctionEnvironment(program);
@@ -253,14 +258,146 @@ public class TypeChecker {
                         "Function '" + funcCall.name + "' is not declared");
                 return null;
             }
+            //We handle built-in functions manually 
+            //Check if this is a call to the built-in 'zeros' function
+            if (funcCall.name.equals("zeros")) {
+                //"zeros" must take EXACTLY 2 integer arguments, example; zeros(3, 4)
+                if (funcCall.actualParameters.size() != 2) {
+                    addError("Built-in function 'zeros' expects 2 integer arguments", getLineNumber(expr));
+                    return null;
+                }
 
-            // TODO: Check parameter types and count
+                //We type check both arguments
+                Type arg1 = checkExpr(funcCall.actualParameters.get(0), env);
+                Type arg2 = checkExpr(funcCall.actualParameters.get(1), env);
+
+                //Both arguments must be integers.
+                if (!isIntType(arg1) || !isIntType(arg2)) {
+                    addError("'zeros' arguments most be integers", getLineNumber(expr));
+
+                    return null;
+                }
+
+                //Create a 2D tensor of type int with unknown sizes (null as the placeholders.)
+                ArrayList<SizeParam> dims = new ArrayList<>();
+                dims.add(null); //Placeholder for dimension 1
+                dims.add(null); //Placeholder for dimension 2
+
+                return new TensorType(new SimpleType(SimpleTypesEnum.INT), dims);
+            }
+            //Same structure as "zeros". Now for the built in "ones" function
+            if (funcCall.name.equals("ones")) {
+                //Handle built-in 'ones' function that creates a 2D tensor filled with ones
+                //Check that exactly two arguments are provided
+                if (funcCall.actualParameters.size() != 2) {
+                    addError("Built-in function 'ones' expects 2 integer arguments ", getLineNumber(expr));
+                    return null;
+                }
+
+                //We type check both arguments
+                Type arg1 = checkExpr(funcCall.actualParameters.get(0), env);
+                Type arg2 = checkExpr(funcCall.actualParameters.get(1), env);
+
+                //Both arguments must be integers, example; ones(3, 4)
+                if (!isIntType(arg1) || !isIntType(arg2)) {
+                    addError("'ones' arguments must be integers", getLineNumber(expr));
+                    return null;
+                }
+
+                //Return a 2D tensor of the ints
+                ArrayList<SizeParam> dims = new ArrayList<>();
+                dims.add(null); //Unknown actual size at typecheck time
+                dims.add(null);
+
+                return new TensorType(new SimpleType(SimpleTypesEnum.INT), dims);
+            }
+
+            //This function checks function types and count
+            // Retrieve actual arguments from the function call
+            List<Expr> actualArgs = funcCall.actualParameters;
+
+            //We lookup the expected return type (we have already done this with env.lookup)
+            //Now we need to manually fetch the function definition to get parameter info
+            FuncDef calledFunc = null;
+            FuncDef scan = rootFuncDef; // Or however you're storing function definitions
+            while (scan != null) {
+                if (scan.procname.equals(funcCall.name)) {
+                    calledFunc = scan;
+                    break;
+                }
+                scan = scan.nextFunc;
+            }
+
+            if (calledFunc == null) {
+                addError("Internal error", getLineNumber(expr),
+                    "Function '" + funcCall.name + "' not found in global environment.");
+                return null;
+            }
+
+            List<Pair<Type, String>> formalParams = calledFunc.formalParams;
+
+            //1. Check parameter count
+            if (actualArgs.size() != formalParams.size()) {
+                addError("Function call error", getLineNumber(expr),
+                    "Function '" + funcCall.name + "' expects " + formalParams.size() +
+                    " arguments, but got " + actualArgs.size());
+                return null;
+            }
+            
+
+            //2. Check argument types
+            for (int i = 0; i < actualArgs.size(); i++) {
+                Type expectedType = formalParams.get(i).elem1;
+                Type actualType = checkExpr(actualArgs.get(i), env);
+                if (!isCompatible(expectedType, actualType))  {
+                    addError("Function call type mismatch", getLineNumber(expr),
+                        "Argument " + (i + 1) + " to function '" + funcCall.name + "' expected " +
+                         typeToString(expectedType) + " but got " + typeToString(actualType));
+                    return null;
+                }
+            }
             return funcType;
         }
+        
+        //Type checks tensor element acess expressions; A[i][j]) for correctness.
+        else if (expr instanceof TensorAccessExpr) {
+            //Downcast the generic expression to a TensorAccessExpr
+            TensorAccessExpr access = (TensorAccessExpr) expr;
+            //We recursively type check the base expression, the tensor being accessed. Example; if its [i][j], this gets the type of "A"
+            Type baseType = checkExpr(access.listExpr, env);
+            //Check that the expression being indexed is actually a tensor
+            if (!(baseType instanceof TensorType)){
+                addError("Tensor acess error", getLineNumber(expr),
+                    "Attempted to index a non-tensor expression of type: " + typeToString(baseType));
+                return null;
+            }
 
-        // TODO: Add other expression types (TensorDefExpr, TensorAccessExpr, etc.)
-
+            
+            //We can cast the baseType to TensorType since we've checked it above
+            TensorType tensor = (TensorType) baseType;
+            //Get the list of index expressions (the [i][j] part(s))
+            List<Expr> indices = access.indices;
+             //Check that number of indices matches the tensors number of dimensions
+            if (indices.size() != tensor.dimensions.size()){
+                addError("Tensor access error", getLineNumber(expr),
+                    "Expected  " + tensor.dimensions.size() + " indices, but we got " + indices.size());
+                return null;
+            }
+            //We check that each index expression is of type int
+            for (Expr indexExpr : indices){
+                Type indexType = checkExpr(indexExpr, env);
+                if (!isIntType(indexType)) {
+                    addError("Tensor index type error", getLineNumber(expr),
+                        "Tensor indices must be of type int, but  got: " + typeToString(indexType));
+                    return null;
+                }
+            }
+            
+        //If everything checks out, then we return the type of the element(s) inside the tensor. For example, if the tensor holds type "double", the result type is "double"
+        return tensor.componentType;
+        }
         return null;
+        }  
     }
 
     private Type checkBinaryOperation(Binoperator op, Type leftType, Type rightType, int line) {
@@ -367,13 +504,27 @@ public class TypeChecker {
     private boolean isCompatible(Type t1, Type t2) {
         if (t1 == null || t2 == null) return false;
 
+        //SimpleType; check if same kind, for example; INT == INT
         if (t1 instanceof SimpleType && t2 instanceof SimpleType) {
             SimpleType s1 = (SimpleType) t1;
             SimpleType s2 = (SimpleType) t2;
             return s1.type == s2.type;
         }
+        //TensorType; check structure, not actual SizeParams
+        if (t1 instanceof TensorType && t2 instanceof TensorType){
+            TensorType tensor1 = (TensorType) t1;
+            TensorType tensor2 = (TensorType) t2;
 
-        // TODO: Add tensor type compatibility
+        //We recursilvely check element type
+        if (!isCompatible(tensor1.componentType, tensor2.componentType)) return false;
+
+        //Same number of dimensions required
+        if (tensor1.dimensions.size() != tensor2.dimensions.size())return false;
+
+        return true;
+
+    }
+        //Other combinations are not compatible
         return false;
     }
 
@@ -437,9 +588,44 @@ public class TypeChecker {
         return type.getClass().getSimpleName();
     }
 
+    //This function maps the formal parameters to actual arguments (used for the parameterised tensor dimensions.)
+    private Map<String, Integer> buildYMapping(List<Pair<Type, String>> formalParams, List<Expr> actualArgs, TypeEnvironment env) {
+        //We create a mapping from the formal parameter names (like "m", "n") to the actual constant integer values that are passed during the function call
+        Map<String, Integer> yMap = new HashMap<>();
+        //Iterate over each formal parameter to match it with the coresponding actual argument
+        for (int i = 0; i < formalParams.size(); i++) {
+            String formalName = formalParams.get(i).elem2;
+            Expr actualExpr = actualArgs.get(i);
+
+            //Evaluate the actual expression if it's a known constant integer, example;  3, 4...
+            if (actualExpr instanceof IntVal) {
+                int value = ((IntVal) actualExpr).value;
+                yMap.put(formalName, value);
+            } else  {
+                addError("Cannot resolve y-mapping for non-constant argument", getLineNumber(actualExpr),
+                    "Parameter '" + formalName + "' must be a constant intager");
+            }
+    }
+    //We return our finished mapping of the formal dimension names to the actual integer values 
+    return yMap;
+    }
+
     private int getLineNumber(Object node) {
         // TODO: Add line number extraction from AST nodes
         // For now, return 0 as placeholder
         return 0;
     }
+     /* 
+    //Uncomment when public int line field to core AST nodes, Expr, Stmt...
+    private int getLineNumber(Object node) {
+    if (node instanceof Expr) {
+        return ((Expr) node).line;
+    } else if (node instanceof Stmt) {
+        return ((Stmt) node).line;
+    } else if (node instanceof FuncDef) {
+        return ((FuncDef) node).line;
+    } else {
+        return 0;
+    }
+    */
 }
