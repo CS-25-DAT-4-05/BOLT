@@ -5,20 +5,20 @@ import AbstractSyntax.Expressions.*;
 import AbstractSyntax.Types.*;
 import AbstractSyntax.Definitions.*;
 import AbstractSyntax.Program.*;
+import AbstractSyntax.SizeParams.*;
 import Lib.Pair;
 import java.util.*;
 
 /*
 TODO::
-Function call parameter checking (verify argument count and types)
 Add more built-in functions for tensor operations
 Implement the y-mapping system for parameterized tensors from formal type rules
  */
 
-
 public class TypeChecker {
     private final List<TypeError> errors = new ArrayList<>();
     private TypeEnvironment globalEnv;
+    private Map<String, FuncDef> functionDefinitions = new HashMap<>(); // stores function definitions
 
     public boolean hasErrors() {
         return !errors.isEmpty();
@@ -57,8 +57,11 @@ public class TypeChecker {
             if (env.lookup(current.procname) != null) {
                 addError("Duplicate function definition", 0, current.procname);
             } else {
-                // Simplified function type representation, not complete function type
+                // Store the return type in environment
                 env.bind(current.procname, current.returnType);
+
+                // also store the complete function definition for parameter checking
+                functionDefinitions.put(current.procname, current);
             }
             current = current.nextFunc;
         }
@@ -69,10 +72,10 @@ public class TypeChecker {
     private void checkDefinitions(FuncDef funcDef) {
         if (funcDef == null) return;
 
-        // Create local environment for this function
+        // create local environment for this function
         TypeEnvironment localEnv = globalEnv.copy();
 
-        // Add parameters to local environment
+        // adds parameters to local environment
         for (Pair<Type, String> param : funcDef.formalParams) {
             if (localEnv.isLocal(param.elem2)) {
                 addError("Duplicate parameter name", 0, param.elem2);
@@ -132,6 +135,7 @@ public class TypeChecker {
             int line = getLineNumber(stmt);
 
             if (assign.isSimpleAssignment()) {
+                // Simple assignment: x = 5
                 String identifier = assign.getIdentifier();
                 Type varType = env.lookup(identifier);
 
@@ -148,10 +152,17 @@ public class TypeChecker {
                                     " but assigned value of type " + typeToString(exprType));
                 }
             } else {
-                // TODO: Handle tensor assignments
+                // Tensor assignment: mat[0, 1] = 99
                 Type targetType = checkExpr(assign.target, env);
                 Type exprType = checkExpr(assign.expr, env);
-                addError("Tensor assignment not yet implemented", line, "");
+
+                if (targetType != null && exprType != null) {
+                    if (!isCompatible(targetType, exprType)) {
+                        addError("Type mismatch in tensor assignment", line,
+                                "Cannot assign " + typeToString(exprType) +
+                                        " to tensor element of type " + typeToString(targetType));
+                    }
+                }
             }
         }
 
@@ -194,9 +205,40 @@ public class TypeChecker {
             Defer defer = (Defer) stmt;
             int line = getLineNumber(stmt);
 
-            // TODO: Add defer-specific type checking for GPU blocks
-            addError("Defer blocks not yet implemented", line, "GPU defer blocks need special handling");
-            checkStmt(defer.stmt, env.newScope(), functionContext);
+            // check that thread dimensions are valid
+            for (Pair<String, SizeParam> dim : defer.dim) {
+                String threadVar = dim.elem1;
+                SizeParam size = dim.elem2;
+
+                // Validate size parameter
+                if (size instanceof SPInt) {
+                    SPInt intSize = (SPInt) size;
+                    if (intSize.value <= 0) {
+                        addError("Invalid thread dimension", line,
+                                "Thread dimension '" + threadVar + "' must be positive, got " + intSize.value);
+                    }
+                } else if (size instanceof SPIdent) {
+                    SPIdent identSize = (SPIdent) size;
+                    Type sizeType = env.lookup(identSize.ident);
+                    if (sizeType == null) {
+                        addError("Undefined size parameter", line,
+                                "Size parameter '" + identSize.ident + "' is not declared");
+                    } else if (!isIntType(sizeType)) {
+                        addError("Invalid size parameter type", line,
+                                "Size parameter '" + identSize.ident + "' must be int, got " + typeToString(sizeType));
+                    }
+                }
+            }
+
+            // Create new scope with thread variables
+            TypeEnvironment deferEnv = env.newScope();
+            for (Pair<String, SizeParam> dim : defer.dim) {
+                String threadVar = dim.elem1;
+                deferEnv.bind(threadVar, new SimpleType(SimpleTypesEnum.INT));
+            }
+
+            // Check defer body in new scope
+            checkStmt(defer.stmt, deferEnv, functionContext);
         }
     }
 
@@ -229,6 +271,16 @@ public class TypeChecker {
             return new SimpleType(SimpleTypesEnum.CHAR);
         }
 
+        // Handles TensorDefExpr (tensor literals like {1, 2, 3})
+        else if (expr instanceof TensorDefExpr) {
+            return checkTensorDefExpr((TensorDefExpr) expr, env);
+        }
+
+        // Handles TensorAccessExpr (tensor access like myTensor[0, 1])
+        else if (expr instanceof TensorAccessExpr) {
+            return checkTensorAccessExpr((TensorAccessExpr) expr, env);
+        }
+
         else if (expr instanceof BinExpr) {
             BinExpr binExpr = (BinExpr) expr;
             Type leftType = checkExpr(binExpr.left, env);
@@ -246,21 +298,130 @@ public class TypeChecker {
 
         else if (expr instanceof FuncCallExpr) {
             FuncCallExpr funcCall = (FuncCallExpr) expr;
-            Type funcType = env.lookup(funcCall.name);
 
+            // Look up function return type
+            Type funcType = env.lookup(funcCall.name);
             if (funcType == null) {
                 addError("Undefined function", getLineNumber(expr),
                         "Function '" + funcCall.name + "' is not declared");
                 return null;
             }
 
-            // TODO: Check parameter types and count
+            // Look up function definition for parameter checking
+            FuncDef funcDef = functionDefinitions.get(funcCall.name);
+            if (funcDef == null) {
+                // Could be a built-in function - for now just return the type
+                // TODO: Add built-in function parameter checking later
+                return funcType;
+            }
+
+            // Check argument count
+            int expectedParams = funcDef.formalParams.size();
+            int actualParams = funcCall.actualParameters.size();
+
+            if (expectedParams != actualParams) {
+                addError("Wrong number of arguments", getLineNumber(expr),
+                        "Function '" + funcCall.name + "' expects " + expectedParams +
+                                " arguments but got " + actualParams);
+                return null;
+            }
+
+            // Check each parameter type
+            for (int i = 0; i < expectedParams; i++) {
+                Type expectedType = funcDef.formalParams.get(i).elem1;
+                Type actualType = checkExpr(funcCall.actualParameters.get(i), env);
+
+                if (actualType != null && !isCompatible(expectedType, actualType)) {
+                    addError("Argument type mismatch", getLineNumber(expr),
+                            "Parameter " + (i + 1) + " of function '" + funcCall.name +
+                                    "' expects " + typeToString(expectedType) +
+                                    " but got " + typeToString(actualType));
+                    return null;
+                }
+            }
+
             return funcType;
         }
 
-        // TODO: Add other expression types (TensorDefExpr, TensorAccessExpr, etc.)
-
         return null;
+    }
+
+    // Type check tensor literals {1, 2, 3} or {{1, 2}, {3, 4}}
+    private Type checkTensorDefExpr(TensorDefExpr tensorExpr, TypeEnvironment env) {
+        if (tensorExpr.exprs == null || tensorExpr.exprs.isEmpty()) {
+            addError("Empty tensor literal", getLineNumber(tensorExpr), "Tensor cannot be empty");
+            return null;
+        }
+
+        // Check the type of the first element
+        Type firstElementType = checkExpr(tensorExpr.exprs.get(0), env);
+        if (firstElementType == null) return null;
+
+        // Check all elements have the same type
+        for (int i = 1; i < tensorExpr.exprs.size(); i++) {
+            Type elementType = checkExpr(tensorExpr.exprs.get(i), env);
+            if (!isCompatible(firstElementType, elementType)) {
+                addError("Inconsistent tensor element types", getLineNumber(tensorExpr),
+                        "Expected " + typeToString(firstElementType) +
+                                " but got " + typeToString(elementType) + " at index " + i);
+                return null;
+            }
+        }
+
+        // Determine tensor dimensions
+        ArrayList<SizeParam> dimensions = new ArrayList<>();
+        dimensions.add(new SPInt(tensorExpr.exprs.size())); // First dimension is the count
+
+        // If elements are tensors themselves, add their dimensions
+        if (firstElementType instanceof TensorType) {
+            TensorType innerTensor = (TensorType) firstElementType;
+            dimensions.addAll(innerTensor.dimensions);
+            return new TensorType(innerTensor.componentType, dimensions);
+        }
+        // If elements are simple types, this is a 1D tensor
+        else if (firstElementType instanceof SimpleType) {
+            return new TensorType((SimpleType) firstElementType, dimensions);
+        }
+
+        addError("Invalid tensor element type", getLineNumber(tensorExpr),
+                "Tensor elements must be simple types or other tensors");
+        return null;
+    }
+
+    // Type check tensor access myTensor[0] or myMatrix[1, 2]
+    private Type checkTensorAccessExpr(TensorAccessExpr accessExpr, TypeEnvironment env) {
+        // Check the base expression (hvad vi indexer ind i)
+        Type baseType = checkExpr(accessExpr.listExpr, env);
+        if (baseType == null) return null;
+
+        if (!(baseType instanceof TensorType)) {
+            addError("Invalid tensor access", getLineNumber(accessExpr),
+                    "Cannot index into non-tensor type " + typeToString(baseType));
+            return null;
+        }
+
+        TensorType tensorType = (TensorType) baseType;
+
+        // Check that all indices are integers
+        for (Expr indexExpr : accessExpr.indices) {
+            Type indexType = checkExpr(indexExpr, env);
+            if (!isIntType(indexType)) {
+                addError("Invalid tensor index", getLineNumber(accessExpr),
+                        "Tensor indices must be integers, got " + typeToString(indexType));
+                return null;
+            }
+        }
+
+        // Check dimension count matches
+        if (accessExpr.indices.size() != tensorType.dimensions.size()) {
+            addError("Wrong number of tensor indices", getLineNumber(accessExpr),
+                    "Tensor has " + tensorType.dimensions.size() + " dimensions but got " +
+                            accessExpr.indices.size() + " indices");
+            return null;
+        }
+
+        // Accessing all dimensions returns the component type
+        return tensorType.componentType;
     }
 
     private Type checkBinaryOperation(Binoperator op, Type leftType, Type rightType, int line) {
@@ -272,7 +433,7 @@ public class TypeChecker {
             case TIMES:
             case DIV:
                 if (isNumericType(leftType) && isNumericType(rightType)) {
-                    // OBS: Return the "wider" type (double if either is double, int otherwise)
+                    // Return the "wider" type (double if either is double, int otherwise)
                     if (isDoubleType(leftType) || isDoubleType(rightType)) {
                         return new SimpleType(SimpleTypesEnum.DOUBLE);
                     }
@@ -373,7 +534,39 @@ public class TypeChecker {
             return s1.type == s2.type;
         }
 
-        // TODO: Add tensor type compatibility
+        if (t1 instanceof TensorType && t2 instanceof TensorType) {
+            TensorType tensor1 = (TensorType) t1;
+            TensorType tensor2 = (TensorType) t2;
+
+            // Check component types match
+            if (!isCompatible(tensor1.componentType, tensor2.componentType)) {
+                return false;
+            }
+
+            // Check dimensions match
+            if (tensor1.dimensions.size() != tensor2.dimensions.size()) {
+                return false;
+            }
+
+            // Check each dimension size matches
+            for (int i = 0; i < tensor1.dimensions.size(); i++) {
+                SizeParam dim1 = tensor1.dimensions.get(i);
+                SizeParam dim2 = tensor2.dimensions.get(i);
+
+                // For now, only check if both are integer literals
+                if (dim1 instanceof SPInt && dim2 instanceof SPInt) {
+                    SPInt spInt1 = (SPInt) dim1;
+                    SPInt spInt2 = (SPInt) dim2;
+                    if (spInt1.value != spInt2.value) {
+                        return false;
+                    }
+                }
+                // TODO: Handle parametric dimensions (SPIdent)
+            }
+
+            return true;
+        }
+
         return false;
     }
 
@@ -397,7 +590,7 @@ public class TypeChecker {
     }
 
     private boolean isVoidType(Type type) {
-        // Er void ikke Bool?
+        // Note: void is represented as BOOL in your current implementation
         return type instanceof SimpleType &&
                 ((SimpleType) type).type == SimpleTypesEnum.BOOL;
     }
