@@ -607,14 +607,11 @@ Primary<out Expr result> = (.
   | INTNUM                       (. result = new IntVal(Integer.parseInt(t.val)); lineNumber = t.line; .)
   | DOUBLENUM                    (. result = new DoubleVal(Double.parseDouble(t.val)); lineNumber = t.line; .)
   | CHARLIT                      (.
-                                    // Simple character literal parsing
                                     String s = t.val;
                                     char charValue;
                                     if (s.length() == 3) {
-                                        // Normal character like 'a'
                                         charValue = s.charAt(1);
                                     } else {
-                                        // Escaped character like '\n'
                                         switch (s.charAt(2)) {
                                             case 'n': charValue = '\n'; break;
                                             case 't': charValue = '\t'; break;
@@ -632,11 +629,11 @@ Primary<out Expr result> = (.
   | "("
     Expression<out Expr tempExpr>
     ")"                          (. result = new ParenExpr(tempExpr); .)
-  | "["                          (. elements = new ArrayList(); .)
+  | "{"                          (. elements = new ArrayList(); .)
     [
       TensorElements<out elements>
     ]
-    "]"                          (. result = new TensorDefExpr((ArrayList<Expr>)elements); .)
+    "}"                          (. result = new TensorDefExpr((ArrayList<Expr>)elements); .)
   )
 .
 
@@ -645,14 +642,14 @@ TensorElements<out ArrayList elements> = (.
   Expr elem = null; ArrayList<Expr> temp = new ArrayList<>();
 .)
   (
-    "["                          (. ArrayList<Expr> subElements = new ArrayList<>(); .)
+    "{"                          (. ArrayList<Expr> subElements = new ArrayList<>(); .)
     TensorElements<out subElements>
-    "]"                          (. temp.add(new TensorDefExpr(subElements)); .)
+    "}"                          (. temp.add(new TensorDefExpr(subElements)); .)
     {
       ","
-      "["
+      "{"
       TensorElements<out subElements>
-      "]"                        (. temp.add(new TensorDefExpr(subElements)); .)
+      "}"                        (. temp.add(new TensorDefExpr(subElements)); .)
     }
   |
     Expression<out elem>         (. temp.add(elem); .)
@@ -662,5 +659,6 @@ TensorElements<out ArrayList elements> = (.
     }
   )                              (. elements = temp; .)
 .
+
 
 END BOLT.
