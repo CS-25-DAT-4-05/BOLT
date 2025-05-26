@@ -26,6 +26,10 @@ public class Transpiler {
 
     static boolean isRoot = false;
 
+    static FnameGenerator fnameGenerator = new FnameGenerator();
+
+    static ArrayList<Pair<Defer, String>> defersToBeWrittenInKernel = new ArrayList<>();
+
     public static void TranspileProg(String fileName, Prog root){
         //Initialization
         Ftable ftable = new Ftable();
@@ -39,7 +43,7 @@ public class Transpiler {
         outputFile = new File(fileName);
 
         try(FileWriter fWriter = new FileWriter(outputFile)){
-            fWriter.append("#include \"tensor.h\"\n");
+            fWriter.append("#include \"tensor.h\"\n#include \"kernels.h\"\n");
 
             if(!(root instanceof Prog)){
                 throw new Exception("Incorrect root for abstract syntax tree");
@@ -51,6 +55,39 @@ public class Transpiler {
             System.out.println(e.getMessage());
         }
 
+        //Generate the kernels.h file
+        ArrayList<String> dimensionalCudaAxis = new ArrayList<>();
+        dimensionalCudaAxis.add("x");
+        dimensionalCudaAxis.add("y");
+        dimensionalCudaAxis.add("z"); 
+        try(FileWriter kfWriter = new FileWriter(new File("kernels.h"))) {
+            for (Pair<Defer, String> deferBlock : defersToBeWrittenInKernel) {
+                //Writing kernel definition/head
+                kfWriter.append("__global__ void " + deferBlock.elem2 + "(){\n");
+
+                //Get the names of the kernelThreadVarBindings
+                ArrayList<String> kernelThreadVarBindList = new ArrayList<>();
+                for (Pair<String, SizeParam> dimension : deferBlock.elem1.dim) {
+                    String kernelThreadVarIdent = dimension.elem1;
+                    kernelThreadVarBindList.add(kernelThreadVarIdent);
+                }
+
+                //Write out the dimensionalAxisBindings in CUDA C++
+                for (String threadVarBinding : kernelThreadVarBindList) {
+                    String cudaAxis = dimensionalCudaAxis.get(kernelThreadVarBindList.indexOf(threadVarBinding));
+                    kfWriter.append("\tint " + threadVarBinding + " = blockIdx." + cudaAxis + " * blockDim." + cudaAxis + " + threadIdx." + cudaAxis + ";\n");
+                }
+
+                //Transpile the statements in the Defer block inside the Kernel
+                transpileStmt(kfWriter, null, kernelThreadVarBindList);
+
+            }
+
+
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+        }
+
     }
 
     static void transpileDef(FileWriter fileWriter,FuncDef f) throws Exception{
@@ -59,7 +96,7 @@ public class Transpiler {
         }
         printFunctionHeader(fileWriter, f);
         fileWriter.append("{\n");
-        transpileStmt(fileWriter, f.funcBody);
+        transpileStmt(fileWriter, f.funcBody, null);
         String returnExpr = transpileExpr(f.returnExpr, null);
 
         fileWriter.append("return "+returnExpr + ";\n");
@@ -67,7 +104,7 @@ public class Transpiler {
         transpileDef(fileWriter, f.nextFunc);
     }
 
-    static void transpileStmt(FileWriter fWriter,Stmt s) throws Exception{
+    static void transpileStmt(FileWriter fWriter,Stmt s, ArrayList<String> forbiddenIdentifiersInDefer) throws Exception{
         String ident;
         String expr;
         String cond;
@@ -78,6 +115,19 @@ public class Transpiler {
             case Assign asgn:
                 ident = asgn.getIdentifier();
                 expr = transpileExpr(asgn.expr, null);
+
+                // Check LHS for illegal assignment in Defer
+                if (forbiddenIdentifiersInDefer != null && forbiddenIdentifiersInDefer.contains(ident)) {
+                    throw new Exception("[ERROR] Assignment to forbidden identifier '" + ident + "' inside defer block. (Multiple Versioning Error)");
+                }
+
+                // Check RHS for forbidden identifiers (simple string containment as a start)
+                for (String forbidden : forbiddenIdentifiersInDefer) {
+                    if (expr.contains(forbidden)) {
+                        throw new Exception("[ERROR] Assignment with forbidden identifier '" + ident + "' inside defer block. (Multiple Versioning Error)");
+                    }
+                }
+
                 fWriter.append(ident + " = " + expr + ";\n");
                 break;
             case Declaration dec:
@@ -85,36 +135,89 @@ public class Transpiler {
                 ident = dec.ident;
                 expr = transpileExpr(dec.expr, dec.t);
                 fWriter.append(type + " " + ident + " = " + expr + ";\n");
-                transpileStmt(fWriter, dec.stmt);
+                transpileStmt(fWriter, dec.stmt, null);
                 break;
             case Comp cmp:
-                transpileStmt(fWriter, cmp.stmt1);
-                transpileStmt(fWriter, cmp.stmt2);
+                transpileStmt(fWriter, cmp.stmt1, null);
+                transpileStmt(fWriter, cmp.stmt2, null);
                 break;
             case If ife:
                 cond = transpileExpr(ife.cond, null);
                 fWriter.append("if(" + cond + "){\n");
-                transpileStmt(fWriter, ife.then);
+                transpileStmt(fWriter, ife.then, null);
                 fWriter.append("}\n");
                 if(ife.els != null){
                     fWriter.append("else{\n");
-                    transpileStmt(fWriter, ife.els);
+                    transpileStmt(fWriter, ife.els, null);
                     fWriter.append("}\n");
                 }
                 break;
             case While wh:
                 cond = transpileExpr(wh.cond, null);
-                fWriter.append("while()" + cond + "){\n");
-                transpileStmt(fWriter, wh.stmt);
+                fWriter.append("while(" + cond + "){\n");
+                transpileStmt(fWriter, wh.stmt, null);
                 fWriter.append("}\n");
                 break;
             case Defer df:
-                
+                if (forbiddenIdentifiersInDefer == null) {
+                    //Generate a name for the kernel
+                    String kernelNameString = fnameGenerator.generateFunctionName();
+
+                    //Write the kernel dimension calculation in CUDA C++
+                    StringBuilder sbKernelCall = new StringBuilder();
+                    writeKernelDimensions(df.dim, sbKernelCall);
+
+                    //Write the kernel call in C++
+                    sbKernelCall.append(kernelNameString + "<<<<amountOfBlocks, blockShape>>>();\n");
+                    sbKernelCall.append("cudaDeviceSynchronize();\n");
+
+                    //Write the actual kernel in a header file called kernels.h
+                    defersToBeWrittenInKernel.add(new Pair<Defer,String>(df, kernelNameString));
+                }
+                else{
+                    throw new Exception("[ERROR] Defer in Defer not allowed!");
+                }
+
                 break;
             default:  
                 break;
         }
-    } 
+    }
+    
+    static void writeKernelDimensions(ArrayList<Pair<String, SizeParam>> dim, StringBuilder sbObj){
+        String size1 = "";
+        String size2 = "";
+        String size3 = "";
+
+        switch (dim.size()) {
+            case 1:
+                size1 = transpileSizeParameters(dim.get(0).elem2);
+
+                sbObj.append("dim3 blockShape(341, 341, 341);\n");
+                sbObj.append("dim3 amountOfBlocks((" + size1 + " / 341) + 1, 1,1);\n");
+                break;
+            
+            case 2:
+                size1 = transpileSizeParameters(dim.get(0).elem2);
+                size2 = transpileSizeParameters(dim.get(1).elem2);
+
+                sbObj.append("dim3 blockShape(341, 341, 341);\n");
+                sbObj.append("dim3 amountOfBlocks((" + size1 + " / 341) + 1," + " (" + size1 + " / 341) + 1,1);\n");
+                break;
+
+            case 3:
+                size1 = transpileSizeParameters(dim.get(0).elem2);
+                size2 = transpileSizeParameters(dim.get(1).elem2);
+                size3 = transpileSizeParameters(dim.get(2).elem2);
+
+                sbObj.append("dim3 blockShape(341, 341, 341);\n");
+                sbObj.append("dim3 amountOfBlocks((" + size1 + " / 341) + 1," + " (" + size2 + " / 341) + 1," + " (" + size3 + " / 341) + 1);\n");
+                break;
+        
+            default:
+                break;
+        }
+    }
 
     static String transpileExpr(Expr e, Type optionalTypeObject) throws Exception{
         StringBuilder sb = new StringBuilder();

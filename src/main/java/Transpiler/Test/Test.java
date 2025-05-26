@@ -56,7 +56,7 @@ public class Test {
         zero = new IntVal(0);
 
         //Defer vector addition
-        
+
         ArrayList<Pair<String, SizeParam>> deferDimensions = new ArrayList<>();
         deferDimensions.add(new Pair<String, SizeParam>("xAxis", new SPInt(3)));
         Defer parallelVectorAdditionDeferBlock = new Defer(deferDimensions, null);
@@ -70,7 +70,8 @@ public class Test {
         tensorDimExpr.add(new IntVal(2));
         tensorDimExpr.add(new IntVal(3));
         TensorDefExpr tensorDefExpr = new TensorDefExpr(tensorDimExpr);
-        Declaration mainFuncBody = new Declaration(decTensorType, "testTensor", tensorDefExpr, null);
+        Declaration mainFuncBody = new Declaration(decTensorType, "testTensor", tensorDefExpr, parallelVectorAdditionDeferBlock);
+
 
         mainFunc = new FuncDef(new SimpleType(SimpleTypesEnum.INT), "main", null, mainFuncBody, zero, null);
         
