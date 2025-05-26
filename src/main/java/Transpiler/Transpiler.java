@@ -53,6 +53,7 @@ public class Transpiler {
             transpileDef(fWriter, root.func);
         } catch(Exception e){
             System.out.println(e.getMessage());
+            e.printStackTrace();
         }
 
         //Generate the kernels.h file
@@ -92,6 +93,7 @@ public class Transpiler {
 
         } catch (Exception e) {
             System.out.println(e.getMessage());
+            e.printStackTrace();
         }
 
     }
@@ -127,10 +129,12 @@ public class Transpiler {
                     throw new Exception("[ERROR] Assignment to forbidden identifier '" + ident + "' inside defer block. (Multiple Versioning Error)");
                 }
 
-                // Check RHS for forbidden identifiers (simple string containment as a start)
-                for (String forbidden : forbiddenIdentifiersInDefer) {
-                    if (expr.contains(forbidden)) {
-                        throw new Exception("[ERROR] Assignment with forbidden identifier '" + ident + "' inside defer block. (Multiple Versioning Error)");
+                // Check RHS for forbidden identifiers
+                if (forbiddenIdentifiersInDefer != null) {
+                    for (String forbidden : forbiddenIdentifiersInDefer) {
+                        if (expr.contains(forbidden)) {
+                            throw new Exception("[ERROR] Assignment with forbidden identifier '" + ident + "' inside defer block. (Multiple Versioning Error)");
+                        }
                     }
                 }
 
@@ -146,10 +150,12 @@ public class Transpiler {
                     throw new Exception("[ERROR] Assignment to forbidden identifier '" + ident + "' inside defer block. (Multiple Versioning Error)");
                 }
 
-                // Check RHS for forbidden identifiers (simple string containment as a start)
-                for (String forbidden : forbiddenIdentifiersInDefer) {
-                    if (expr.contains(forbidden)) {
-                        throw new Exception("[ERROR] Assignment with forbidden identifier '" + ident + "' inside defer block. (Multiple Versioning Error)");
+                // Check RHS for forbidden identifiers
+                if (forbiddenIdentifiersInDefer != null) {
+                    for (String forbidden : forbiddenIdentifiersInDefer) {
+                        if (expr.contains(forbidden)) {
+                            throw new Exception("[ERROR] Assignment with forbidden identifier '" + ident + "' inside defer block. (Multiple Versioning Error)");
+                        }
                     }
                 }
 
