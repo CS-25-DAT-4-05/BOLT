@@ -2,3 +2,4 @@
 *.iml
 .idea/
 *.cu
+src/main/java/Transpiler/Test/kernels.h

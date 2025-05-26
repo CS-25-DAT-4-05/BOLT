@@ -196,6 +196,7 @@ public class Transpiler {
                     //Write the kernel call in C++
                     sbKernelCall.append(kernelNameString + "<<<<amountOfBlocks, blockShape>>>();\n");
                     sbKernelCall.append("cudaDeviceSynchronize();\n");
+                    fWriter.append(sbKernelCall.toString());
 
                     //Write the actual kernel in a header file called kernels.h
                     defersToBeWrittenInKernel.add(new Pair<Defer,String>(df, kernelNameString));
