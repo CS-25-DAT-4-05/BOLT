@@ -84,7 +84,7 @@ public class Transpiler {
                 }
 
                 //Transpile the statements in the Defer block inside the Kernel
-                transpileStmt(kfWriter, null, kernelThreadVarBindList);
+                transpileStmt(kfWriter, deferBlock.elem1.stmt, kernelThreadVarBindList);
 
                 kfWriter.append("\n}");
 
@@ -251,7 +251,7 @@ public class Transpiler {
         switch (e) {
             case BinExpr be:
                 String e1 = transpileExpr(be.left, null);
-                String e2 = transpileExpr(be.left, null);
+                String e2 = transpileExpr(be.right, null);
                 return e1 +  getBinOp(be.op) + e2;
             case IntVal iv:
                 return "" + iv.value;
