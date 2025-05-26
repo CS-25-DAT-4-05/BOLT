@@ -1,18 +1,19 @@
 package SemanticAnalysis;
 
-import AbstractSyntax.Statements.*;
-import AbstractSyntax.Expressions.*;
-import AbstractSyntax.Types.*;
 import AbstractSyntax.Definitions.*;
+import AbstractSyntax.Expressions.*;
 import AbstractSyntax.Program.*;
 import AbstractSyntax.SizeParams.*;
+import AbstractSyntax.Statements.*;
+import AbstractSyntax.Types.*;
 import Lib.Pair;
 import java.util.*;
+
+//import javax.management.openmbean.SimpleType;
 
 /*
 TODO::
 Add more built-in functions for tensor operations
-Implement the y-mapping system for parameterized tensors from formal type rules
  */
 
 public class TypeChecker {
@@ -628,6 +629,28 @@ public class TypeChecker {
         }
 
         return type.getClass().getSimpleName();
+    }
+
+    //This function maps the formal parameters to actual arguments (used for the parameterised tensor dimensions.)
+    private Map<String, Integer> buildYMapping(List<Pair<Type, String>> formalParams, List<Expr> actualArgs, TypeEnvironment env) {
+        //We create a mapping from the formal parameter names (like "m", "n") to the actual constant integer values that are passed during the function call
+        Map<String, Integer> yMap = new HashMap<>();
+        //Iterate over each formal parameter to match it with the coresponding actual argument
+        for (int i = 0; i < formalParams.size(); i++) {
+            String formalName = formalParams.get(i).elem2;
+            Expr actualExpr = actualArgs.get(i);
+
+            //Evaluate the actual expression if it's a known constant integer, example;  3, 4...
+            if (actualExpr instanceof IntVal) {
+                int value = ((IntVal) actualExpr).value;
+                yMap.put(formalName, value);
+            } else  {
+                addError("Cannot resolve y-mapping for non-constant argument", getLineNumber(actualExpr),
+                    "Parameter '" + formalName + "' must be a constant intager");
+            }
+    }
+    //We return our finished mapping of the formal dimension names to the actual integer values 
+    return yMap;
     }
 
     private int getLineNumber(Object node) {
