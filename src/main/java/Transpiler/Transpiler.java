@@ -83,10 +83,10 @@ public class Transpiler {
                     kfWriter.append("\tif(" + threadVarBinding + " > " + dimLimit + "){ return; }");
                 }
 
-                
-
                 //Transpile the statements in the Defer block inside the Kernel
                 transpileStmt(kfWriter, null, kernelThreadVarBindList);
+
+                kfWriter.append("\n}");
 
             }
 
