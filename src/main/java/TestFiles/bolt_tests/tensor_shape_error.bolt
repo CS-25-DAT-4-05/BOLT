@@ -1,5 +1,5 @@
-func main(): int {
-    tensor[2, 2] A = [[1, 2], [3, 4]];
-    tensor[2, 3] B = A;  // shape mismatch
+func: int main() {
+    int[2, 2] mat = {{1, 2}, {3, 4}};
+    int[2, 3] badMat = mat;  // shape mismatch
     return 0;
 }

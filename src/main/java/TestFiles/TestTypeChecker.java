@@ -57,5 +57,8 @@ public class TestTypeChecker {
                 System.out.println("Correctly failed: " + e.getMessage());  //...and was expected to fail — we passed the test
             }
         }
+    
+        //Add separator line, just makes it more organised after running run_tests-bat file on the test.bolt files in Test_Files folder
+        System.out.println("-------------------------------------------------------------------");
     }
 }

@@ -2,8 +2,8 @@ package boltparser;
 
 import AbstractSyntax.Definitions.FuncDef;
 import AbstractSyntax.Program.*;
-import DataflowAnalysis.CFGBuilder;
 import DataflowAnalysis.CFGAnalysis;
+import DataflowAnalysis.CFGBuilder;
 import java.io.File;
 import java.util.*;
 

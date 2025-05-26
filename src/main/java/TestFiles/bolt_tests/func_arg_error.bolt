@@ -1,8 +1,8 @@
-func add(x: int, y: int): int {
-    return x + y;
+func: int add(int a, int b) {
+    return a + b;
 }
 
-func main(): int {
-    int z = add(1);  // missing argument
-    return z;
+func: int main() {
+    int x = add(5);  // missing one argument
+    return x;
 }

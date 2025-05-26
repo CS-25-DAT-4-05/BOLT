@@ -1,5 +1,8 @@
-func int main() {
-    int x = 3;
-    int y = x + 2;
-    return y;
-};
+func: int add(int a, int b) {
+    return a + b;
+}
+
+func: int main() {
+    int x = add(2, 3);
+    return x;
+}
