@@ -1,0 +1,8 @@
+func: int brokenFunc() {
+    int x = 10;
+    //no return
+}
+
+func: int main() {
+    return 0;
+}

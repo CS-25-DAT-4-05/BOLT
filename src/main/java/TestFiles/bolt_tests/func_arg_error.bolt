@@ -1,0 +1,8 @@
+func: int add(int a, int b) {
+    return a + b;
+}
+
+func: int main() {
+    float x = 3.14;
+    return add(x, 1); //float instead of int
+}

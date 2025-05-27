@@ -1,3 +1,9 @@
+:: run_integration_tests.bat
+:: -------------------
+:: Compiles and runs integration tests for .bolt files using BoltIntegrationTestRunner
+:: All test results are reported as [PASS], [FAIL], or [ERROR]
+:: Should output .class files are placed in TestFiles/out/
+
 @echo off
 echo ================================
 echo Cleaning old build output...
@@ -20,7 +26,7 @@ javac -d out -cp .. ^
 ..\boltparser\*.java ^
 ..\Lib\*.java ^
 ..\SemanticAnalysis\*.java ^
-TestTypeChecker.java
+BoltIntegrationTestRunner.java
 
 if %ERRORLEVEL% NEQ 0 (
     echo Compilation failed.
@@ -29,9 +35,9 @@ if %ERRORLEVEL% NEQ 0 (
 )
 
 echo ================================
-echo Running TestTypeChecker...
+echo Running BoltIntegrationTestRunner...
 echo ================================
 cd out
-java TestFiles.TestTypeChecker
+java TestFiles.BoltIntegrationTestRunner
 
 pause

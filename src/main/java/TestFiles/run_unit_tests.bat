@@ -1,3 +1,9 @@
+:: run_unit_tests.bat
+:: -------------------
+:: Compiles and runs all unit tests located in TestFiles/UnitTests/
+:: Output .class files are placed in TestFiles/out/
+:: Results are printed to the console for each test method (pass/fail)
+
 @echo off
 echo ================================
 echo Cleaning previous output...

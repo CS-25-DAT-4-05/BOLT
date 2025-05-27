@@ -1,0 +1,6 @@
+func: int main() {
+    return 1;
+    defer {
+        int x = 5;
+    }
+}

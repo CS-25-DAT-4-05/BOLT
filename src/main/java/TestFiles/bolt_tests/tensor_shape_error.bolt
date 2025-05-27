@@ -1,0 +1,5 @@
+func: tensor[2, 2] main() {
+    tensor[2, 2] a = zeros(2, 2);
+    tensor[3, 2] b = zeros(3, 2);
+    return a + b; //shape mismatch
+}

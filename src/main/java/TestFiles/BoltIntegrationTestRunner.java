@@ -8,13 +8,18 @@ import boltparser.Scanner;
 import java.util.List;
 
 /**
- * Integration Test Runner for .bolt files.
  * 
- * This class runs all .bolt test programs through the full pipeline:
- * parsing, AST generation, and type checking. It is used to validate
- * that complete programs behave as expected, either passing or failing
- * type checking according to the test case definition.
+ * BoltIntegrationTestRunner
+ *
+ * This class serves as the integration test runner for the BOLT language.
+ * It executes all .bolt test files through the full pipeline: parsing,
+ * AST construction, and type checking. Each file is expected to either 
+ * pass or fail type checking, and this runner verifies that outcome.
+ *
+ * The results are printed to the console as [PASS], [FAIL], or [ERROR],
+ * along with additional error messages when applicable.
  */
+
 
 
 public class BoltIntegrationTestRunner {
@@ -25,21 +30,25 @@ public class BoltIntegrationTestRunner {
 
         //Each runTest() call tests one .bolt file
         //The second argument indicates whether the file is expected to pass or fail type checking
-        runTest("../bolt_tests/valid_program_1.bolt", true); // this should pass
-        runTest("../bolt_tests/valid_return_stmt.bolt", true); // this should pass
+        runTest("../bolt_tests/valid_program_1.bolt", true); //this should pass
+        runTest("../bolt_tests/valid_return_stmt.bolt", true); //this should pass
         runTest("../bolt_tests/valid_defer_block.bolt", true); // this should pass
 
-        runTest("../bolt_tests/undeclared_var.bolt", false); // this should fail
-        //runTest("../bolt_tests/tensor_shape_error.bolt", false); // this should fail
-        runTest("../bolt_tests/tensor_shape_mismatch.bolt", false); // this should fail
-        //runTest("../bolt_tests/func_arg_error.bolt", false); // this should fail
-        runTest("../bolt_tests/func_call_wrong_arg_count.bolt", false); // this should fail
-        runTest("../bolt_tests/func_call_wrong_arg_type.bolt", false); // this should fail
-        runTest("../bolt_tests/builtin_zeros_invalid_type.bolt", false); // this should fail
-        runTest("../bolt_tests/defer_forbidden_id.bolt", false); // this should fail
-        runTest("../bolt_tests/invalid_return_stmt_type.bolt", false); // this should fail
-        runTest("../bolt_tests/if_stmt_type_mismatch.bolt", false); // this should fail
-        runTest("../bolt_tests/while_stmt_type_mismatch.bolt", false); // this should fail
+        runTest("../bolt_tests/func_arg_error.bolt", false); //this should fail
+        runTest("../bolt_tests/tensor_shape_error.bolt", false); //this should fail
+        runTest("../bolt_tests/func_missing_return.bolt", false); //this should fail
+        runTest("../bolt_tests/defer_after_return.bolt", false); //this should fail
+
+
+        runTest("../bolt_tests/undeclared_var.bolt", false); //this should fail
+        runTest("../bolt_tests/tensor_shape_mismatch.bolt", false); //this should fail
+        runTest("../bolt_tests/func_call_wrong_arg_count.bolt", false); //this should fail
+        runTest("../bolt_tests/func_call_wrong_arg_type.bolt", false); //this should fail
+        runTest("../bolt_tests/builtin_zeros_invalid_type.bolt", false); //this should fail
+        runTest("../bolt_tests/defer_forbidden_id.bolt", false); //this should fail
+        runTest("../bolt_tests/invalid_return_stmt_type.bolt", false); //this should fail
+        runTest("../bolt_tests/if_stmt_type_mismatch.bolt", false); //this should fail
+        runTest("../bolt_tests/while_stmt_type_mismatch.bolt", false); //this should fail
         
     }
      //This method runs a single test by parsing and type-checking the provided .bolt file

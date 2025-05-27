@@ -1,4 +1,4 @@
-func int main() {
+func: int main() {
     tensor[int, 1, 1] A = zeros(1, 1);
 
     while A {
