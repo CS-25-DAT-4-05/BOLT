@@ -1,11 +1,6 @@
-func int main() {
-    tensor[int, 2, 2] A = [[1, 2], [3, 4]];
-
-    if A {
+func: int main() {
+    while (3) {  //int instead of boolean
         return 1;
     }
-
     return 0;
 }
-
-//Description: Condition in `if` is a tensor instead of boolean-compatible expression; should fail

@@ -1,4 +1,4 @@
-int main() {
-    int x = y + 1; // 'y' is undeclared
+func: int main() {
+    x = 5;  //x is not declared
     return x;
 }

@@ -1,5 +1,3 @@
-func int foo() {
-    return true;
+func: int main() {
+    return "hello";  //should return int
 }
-
-//Description: Return statement returns boolean instead of int; should fail

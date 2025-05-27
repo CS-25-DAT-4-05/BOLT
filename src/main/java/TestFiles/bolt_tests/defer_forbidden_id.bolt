@@ -1,6 +1,4 @@
-func int main() {
-    int defer = 5;
+func: int main() {
+    int defer = 5;  //illegal use of reserved keyword
     return defer;
 }
-
-//Description: Using `defer` as an identifier should fail; it's a reserved keyword

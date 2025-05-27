@@ -23,7 +23,7 @@ javac -d out -cp .. ^
 TestTypeChecker.java
 
 if %ERRORLEVEL% NEQ 0 (
-    echo ❌ Compilation failed.
+    echo Compilation failed.
     pause
     exit /b %ERRORLEVEL%
 )

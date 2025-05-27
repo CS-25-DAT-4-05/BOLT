@@ -1,8 +1,6 @@
-func int foo() {
+func: int main() {
     defer {
         int x = 1;
     }
     return 0;
 }
-
-//Description: Valid defer block with a local declaration

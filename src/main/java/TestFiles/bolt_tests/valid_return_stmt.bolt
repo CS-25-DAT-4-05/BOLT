@@ -1,5 +1,3 @@
-func int identity(int x) {
-    return x;
+func: int main() {
+    return 42;
 }
-
-//Description: Valid function with return statement

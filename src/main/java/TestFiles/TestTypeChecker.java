@@ -15,11 +15,6 @@ public class TestTypeChecker {
     public static void main(String[] args) {
         System.out.println("=== Running TypeChecker Integration Tests ===");
 
-        runTest("../bolt_tests/valid_program_1.bolt", true); // should pass
-        runTest("../bolt_tests/builtin_zeros_invalid_type.bolt", false); // should fail
-        runTest("../bolt_tests/undeclared_var.bolt", false); // should fail
-
-        /* 
         //Each runTest() call tests one .bolt file
         //The second argument indicates whether the file is expected to pass or fail type checking
         runTest("../bolt_tests/valid_program_1.bolt", true); // this should pass
@@ -37,7 +32,7 @@ public class TestTypeChecker {
         runTest("../bolt_tests/invalid_return_stmt_type.bolt", false); // this should fail
         runTest("../bolt_tests/if_stmt_type_mismatch.bolt", false); // this should fail
         runTest("../bolt_tests/while_stmt_type_mismatch.bolt", false); // this should fail
-        */
+        
     }
      //This method runs a single test by parsing and type-checking the provided .bolt file
     public static void runTest(String filePath, boolean shouldPass) {

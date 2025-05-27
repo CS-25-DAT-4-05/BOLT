@@ -26,7 +26,7 @@ UnitTests\TestStmtChecker.java ^
 UnitTests\TestBuiltinFunctions.java
 
 if %ERRORLEVEL% NEQ 0 (
-    echo ❌ Compilation failed.
+    echo Compilation failed.
     pause
     exit /b
 )
