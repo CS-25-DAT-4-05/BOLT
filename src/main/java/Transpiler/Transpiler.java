@@ -386,20 +386,19 @@ public class Transpiler {
                 String baseExpr = transpileExpr(tae.listExpr, null, inKernel);
 
                 if (inKernel) {
-                    // Inside kernel - use device methods
-                    if (tae.indices.size() == 1) {
-                        String index = transpileExpr(tae.indices.get(0), null, inKernel);
-                        fWriter.append("tensor_setAt_1d(" + baseExpr + "_data, " + index + ", " + expr + ");\n");
-                    } else if (tae.indices.size() == 2) {
-                        String index1 = transpileExpr(tae.indices.get(0), null, inKernel);
-                        String index2 = transpileExpr(tae.indices.get(1), null, inKernel);
-                        fWriter.append("tensor_setAt_2d(" + baseExpr + "_data, " + index1 + ", " + index2 + ", " + baseExpr + "_dims, " + expr + ");\n");
-                    } else if (tae.indices.size() == 3) {
-                        String index1 = transpileExpr(tae.indices.get(0), null, inKernel);
-                        String index2 = transpileExpr(tae.indices.get(1), null, inKernel);
-                        String index3 = transpileExpr(tae.indices.get(2), null, inKernel);
-                        fWriter.append("tensor_setAt_3d(" + baseExpr + "_data, " + index1 + ", " + index2 + ", " + index3 + ", " + baseExpr + "_dims, " + expr + ");\n");
+                    // Build indices array
+                    StringBuilder indices = new StringBuilder();
+                    for (int i = 0; i < tae.indices.size(); i++) {
+                        if (i > 0) indices.append(", ");
+                        indices.append(transpileExpr(tae.indices.get(i), null, inKernel));
                     }
+
+                    // Use the generic function for any dimension
+                    fWriter.append("{\n");
+                    fWriter.append("    int indices[] = {" + indices + "};\n");
+                    fWriter.append("    tensor_set(" + baseExpr + "_data, indices, " +
+                            baseExpr + "_dims, " + tae.indices.size() + ", " + expr + ");\n");
+                    fWriter.append("}\n");
                 } else {
                     // Host code - use host methods
                     StringBuilder indices = new StringBuilder();
@@ -668,20 +667,19 @@ public class Transpiler {
                 String baseExpr = transpileExpr(tae.listExpr, null, inKernel);
 
                 if (inKernel) {
-                    // Inside kernel - use device methods
-                    if (tae.indices.size() == 1) {
-                        String index = transpileExpr(tae.indices.get(0), null, inKernel);
-                        return "tensor_access_1d(" + baseExpr + "_data, " + index + ")";
-                    } else if (tae.indices.size() == 2) {
-                        String index1 = transpileExpr(tae.indices.get(0), null, inKernel);
-                        String index2 = transpileExpr(tae.indices.get(1), null, inKernel);
-                        return "tensor_access_2d(" + baseExpr + "_data, " + index1 + ", " + index2 + ", " + baseExpr + "_dims)";
-                    } else if (tae.indices.size() == 3) {
-                        String index1 = transpileExpr(tae.indices.get(0), null, inKernel);
-                        String index2 = transpileExpr(tae.indices.get(1), null, inKernel);
-                        String index3 = transpileExpr(tae.indices.get(2), null, inKernel);
-                        return "tensor_access_3d(" + baseExpr + "_data, " + index1 + ", " + index2 + ", " + index3 + ", " + baseExpr + "_dims)";
+                    // Build indices array inline
+                    StringBuilder indices = new StringBuilder();
+                    for (int i = 0; i < tae.indices.size(); i++) {
+                        if (i > 0) indices.append(", ");
+                        indices.append(transpileExpr(tae.indices.get(i), null, inKernel));
                     }
+
+                    // Use statement expression for inline array creation
+                    return "({\n" +
+                            "    int _indices[] = {" + indices + "};\n" +
+                            "    tensor_access(" + baseExpr + "_data, _indices, " +
+                            baseExpr + "_dims, " + tae.indices.size() + ");\n" +
+                            "})";
                 } else {
                     // Host code - use host methods
                     StringBuilder indices = new StringBuilder();
@@ -691,7 +689,7 @@ public class Transpiler {
                     }
                     return baseExpr + ".access({" + indices + "})";
                 }
-                break;
+
 
             case TensorDefExpr tde:
                 return transpileTensorDef(tde, optionalTypeObject, inKernel);
@@ -699,7 +697,6 @@ public class Transpiler {
             default:
                 return "";
         }
-        return "";
     }
 
     private static String transpileTensorDef(TensorDefExpr tde, Type optionalTypeObject, boolean inKernel) throws Exception {

@@ -27,6 +27,30 @@ __device__ __host__ inline void tensor_setAt_3d(int* data, int x, int y, int z, 
     data[x * dims[1] * dims[2] + y * dims[2] + z] = value;
 }
 
+// Generic N-dimensional tensor access
+__device__ __host__ inline int tensor_access(int* data, int* indices, int* dims, int ndims) {
+    int index = 0;
+    int stride = 1;
+
+    // Calculate flat index from N-dimensional indices
+    for (int i = ndims - 1; i >= 0; i--) {
+        index += indices[i] * stride;
+        if (i > 0) stride *= dims[i];
+    }
+    return data[index];
+}
+
+__device__ __host__ inline void tensor_set(int* data, int* indices, int* dims, int ndims, int value) {
+    int index = 0;
+    int stride = 1;
+
+    for (int i = ndims - 1; i >= 0; i--) {
+        index += indices[i] * stride;
+        if (i > 0) stride *= dims[i];
+    }
+    data[index] = value;
+}
+
 class IntTensor{
     public:
         std::vector<int> components;
