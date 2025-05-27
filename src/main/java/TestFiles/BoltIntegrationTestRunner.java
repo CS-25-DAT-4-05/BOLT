@@ -7,9 +7,17 @@ import boltparser.Parser; //For List<TypeError>
 import boltparser.Scanner;
 import java.util.List;
 
+/**
+ * Integration Test Runner for .bolt files.
+ * 
+ * This class runs all .bolt test programs through the full pipeline:
+ * parsing, AST generation, and type checking. It is used to validate
+ * that complete programs behave as expected, either passing or failing
+ * type checking according to the test case definition.
+ */
 
 
-public class TestTypeChecker {
+public class BoltIntegrationTestRunner {
     
     //Entry point for running all integration tests
     public static void main(String[] args) {
@@ -74,7 +82,7 @@ public class TestTypeChecker {
         e.printStackTrace();
     }
 
-    System.out.println(); // spacing
+    System.out.println(); //spacing
 
     }
 }
