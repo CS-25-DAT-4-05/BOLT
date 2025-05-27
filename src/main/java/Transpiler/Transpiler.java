@@ -394,6 +394,11 @@ public class Transpiler {
                         String index1 = transpileExpr(tae.indices.get(0), null, inKernel);
                         String index2 = transpileExpr(tae.indices.get(1), null, inKernel);
                         fWriter.append("tensor_setAt_2d(" + baseExpr + "_data, " + index1 + ", " + index2 + ", " + baseExpr + "_dims, " + expr + ");\n");
+                    } else if (tae.indices.size() == 3) {
+                        String index1 = transpileExpr(tae.indices.get(0), null, inKernel);
+                        String index2 = transpileExpr(tae.indices.get(1), null, inKernel);
+                        String index3 = transpileExpr(tae.indices.get(2), null, inKernel);
+                        fWriter.append("tensor_setAt_3d(" + baseExpr + "_data, " + index1 + ", " + index2 + ", " + index3 + ", " + baseExpr + "_dims, " + expr + ");\n");
                     }
                 } else {
                     // Host code - use host methods
@@ -671,6 +676,11 @@ public class Transpiler {
                         String index1 = transpileExpr(tae.indices.get(0), null, inKernel);
                         String index2 = transpileExpr(tae.indices.get(1), null, inKernel);
                         return "tensor_access_2d(" + baseExpr + "_data, " + index1 + ", " + index2 + ", " + baseExpr + "_dims)";
+                    } else if (tae.indices.size() == 3) {
+                        String index1 = transpileExpr(tae.indices.get(0), null, inKernel);
+                        String index2 = transpileExpr(tae.indices.get(1), null, inKernel);
+                        String index3 = transpileExpr(tae.indices.get(2), null, inKernel);
+                        return "tensor_access_3d(" + baseExpr + "_data, " + index1 + ", " + index2 + ", " + index3 + ", " + baseExpr + "_dims)";
                     }
                 } else {
                     // Host code - use host methods

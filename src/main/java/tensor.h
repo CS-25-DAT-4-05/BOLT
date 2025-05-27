@@ -19,6 +19,14 @@ __device__ __host__ inline void tensor_setAt_2d(int* data, int row, int col, int
     data[row * dims[1] + col] = value;
 }
 
+__device__ __host__ inline int tensor_access_3d(int* data, int x, int y, int z, int* dims) {
+    return data[x * dims[1] * dims[2] + y * dims[2] + z];
+}
+
+__device__ __host__ inline void tensor_setAt_3d(int* data, int x, int y, int z, int* dims, int value) {
+    data[x * dims[1] * dims[2] + y * dims[2] + z] = value;
+}
+
 class IntTensor{
     public:
         std::vector<int> components;
