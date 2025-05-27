@@ -13,10 +13,10 @@ public class TestTypeChecker {
         System.out.println("=== Running TypeChecker Integration Tests ===");
         // Each runTest() call tests one .bolt file
         // The second argument indicates whether the file is expected to pass or fail type checking
-        runTest("bolt_tests/valid_program_1.bolt", true); //Expected to pass
-        runTest("bolt_tests/undeclared_var.bolt", false); //Should fail
-        runTest("bolt_tests/tensor_shape_error.bolt", false); //Should fail
-        runTest("bolt_tests/func_arg_error.bolt", false); //Should fail
+        runTest("../bolt_tests/valid_program_1.bolt", true); //Expected to pass
+        runTest("../bolt_tests/undeclared_var.bolt", false); //Should fail
+        runTest("../bolt_tests/tensor_shape_error.bolt", false); //Should fail
+        runTest("../bolt_tests/func_arg_error.bolt", false); //Should fail
 
         System.out.println("\n All integration tests completed.");
     }

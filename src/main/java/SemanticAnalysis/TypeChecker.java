@@ -107,7 +107,7 @@ public class TypeChecker {
         checkDefinitions(funcDef.nextFunc);
     }
 
-    private void checkStmt(Stmt stmt, TypeEnvironment env, String functionContext) {
+    public void checkStmt(Stmt stmt, TypeEnvironment env, String functionContext) {
         if (stmt == null) return;
 
         if (stmt instanceof Declaration) {
@@ -265,7 +265,7 @@ public class TypeChecker {
         }
     }
 
-    private Type checkExpr(Expr expr, TypeEnvironment env) {
+    public Type checkExpr(Expr expr, TypeEnvironment env) {
         if (expr == null) return null;
 
         if (expr instanceof Ident) {
