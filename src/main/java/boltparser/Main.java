@@ -1,13 +1,16 @@
 package boltparser;
-
+import Transpiler.Transpiler;
 import AbstractSyntax.Definitions.FuncDef;
 import AbstractSyntax.Program.*;
 import DataflowAnalysis.CFGBuilder;
 import DataflowAnalysis.CFGAnalysis;
 import java.io.File;
 import java.util.*;
+import SemanticAnalysis.TypeChecker;
+import SemanticAnalysis.TypeEnvironment;
 
 public class Main {
+
     public static void main(String[] args) {
         if (args.length < 1) {
             System.out.println("Usage: java Main <input-file>");
@@ -51,51 +54,104 @@ public class Main {
 
             System.out.println("\n=== Control Flow Graph ===\n");
             CFGBuilder builder = new CFGBuilder();
-            for (FuncDef func = ast.func; func != null; func = func.nextFunc) {
 
-                
+            // NEW: Collect CFG analysis for all functions
+            Map<String, FunctionCFGInfo> allFunctionCFGs = new HashMap<>();
+
+            for (FuncDef func = ast.func; func != null; func = func.nextFunc) {
                 System.out.println("\n\n\n-----------------------------------------------------------");
                 System.out.println("Function: " + func.procname);
+
+                // NEW: Create CFG info for this function
+                FunctionCFGInfo cfgInfo = new FunctionCFGInfo(func.procname);
+
                 CFGBuilder.CFGNode entry = builder.buildFunctionCFG(func);
-                
+
                 // Collect all nodes reachable from entry
                 Set<CFGBuilder.CFGNode> visited = new HashSet<>();
-                List<CFGBuilder.CFGNode> allNodes = new ArrayList<>();
-                collectAllNodes(entry, visited, allNodes);
-                
+                collectAllNodes(entry, visited, cfgInfo.allNodes);
+
                 // Print raw CFG
                 printCFG(entry, new HashSet<>());
-                
+
                 // Run analysis
-                
-                Map<CFGBuilder.CFGNode, CFGAnalysis.Liveness> liveness = CFGAnalysis.performLiveness(allNodes);
-                Map<String, Set<CFGBuilder.CFGNode>> useDef = CFGAnalysis.computeUseDefChains(allNodes);
-                List<CFGBuilder.CFGNode> optimized = CFGAnalysis.eliminateDeadCode(allNodes, liveness);
-                
+                cfgInfo.liveness = CFGAnalysis.performLiveness(cfgInfo.allNodes);
+                cfgInfo.useDef = CFGAnalysis.computeUseDefChains(cfgInfo.allNodes);
+                cfgInfo.optimized = CFGAnalysis.eliminateDeadCode(cfgInfo.allNodes, cfgInfo.liveness);
+
                 // Output analyses
                 System.out.println("\n-- Liveness Info --");
-                for (CFGBuilder.CFGNode node : allNodes) {
-                    CFGAnalysis.Liveness lv = liveness.get(node);
+                for (CFGBuilder.CFGNode node : cfgInfo.allNodes) {
+                    CFGAnalysis.Liveness lv = cfgInfo.liveness.get(node);
                     System.out.println("Node " + node.id + " IN: " + lv.in + " OUT: " + lv.out);
                 }
 
                 System.out.println("\n-- Use-Def Chains --");
-                for (String var : useDef.keySet()) {
+                for (String var : cfgInfo.useDef.keySet()) {
                     System.out.print(var + " defined at nodes: ");
-                    for (CFGBuilder.CFGNode def : useDef.get(var)) {
+                    for (CFGBuilder.CFGNode def : cfgInfo.useDef.get(var)) {
                         System.out.print(def.id + " ");
                     }
                     System.out.println();
                 }
 
                 System.out.println("\n-- Optimized CFG (Dead Code Eliminated) --");
-                for (CFGBuilder.CFGNode node : optimized) {
+                for (CFGBuilder.CFGNode node : cfgInfo.optimized) {
                     System.out.println("Node ID: " + node.id + ", GEN: " + node.gen + ", KILL: " + node.kill);
                 }
 
                 System.out.println("\n-- Memory Transfers --");
-                CFGAnalysis.insertMemoryTransfers(allNodes);
+                CFGAnalysis.insertMemoryTransfers(cfgInfo.allNodes);
+
+                // NEW: Store CFG info for this function
+                allFunctionCFGs.put(func.procname, cfgInfo);
+
                 System.out.println("-----------------------------------------------------------");
+            }
+
+            System.out.println("\n=== Type Checking ===\n");
+            TypeChecker typeChecker = new TypeChecker();
+            try {
+                typeChecker.check(ast);
+                System.out.println("Type checking completed successfully");
+
+                // Get the global type environment
+                TypeEnvironment globalTypes = typeChecker.getGlobalEnvironment();
+
+                System.out.println("\n=== Transpilation ===\n");
+                try {
+                    String baseFilename;
+                    if (filename.contains(".")) {
+                        baseFilename = filename.substring(0, filename.lastIndexOf('.'));
+                    } else {
+                        baseFilename = filename;
+                    }
+
+                    // NEW: Pass CFG analysis to transpiler
+                    Transpiler.TranspileProg(baseFilename, ast, globalTypes, allFunctionCFGs);
+
+                } catch (Exception transpilerError) {
+                    System.err.println("Error during transpilation: " + transpilerError.getMessage());
+                    transpilerError.printStackTrace();
+                }
+
+            } catch (RuntimeException typeError) {
+                System.err.println("Type checking failed: " + typeError.getMessage());
+
+                // Print detailed error information
+                if (typeChecker.hasErrors()) {
+                    List<String> errors = typeChecker.getErrors();
+                    System.err.println("\nDetailed type checking errors:");
+                    for (int i = 0; i < errors.size(); i++) {
+                        System.err.println("  Error " + (i + 1) + ": " + errors.get(i));
+                    }
+                } else {
+                    System.err.println("No detailed error information available");
+                }
+
+                // Print the exception stack trace for debugging
+                System.err.println("\nException details:");
+                typeError.printStackTrace();
             }
 
         } catch (Exception e) {
