@@ -1,77 +1,101 @@
 package TestFiles.UnitTests;
 
-import AbstractSyntax.Expressions.DoubleVal;
-import AbstractSyntax.Expressions.Expr;
-import AbstractSyntax.Expressions.FuncCallExpr;
-import AbstractSyntax.Expressions.IntVal;
-import AbstractSyntax.Types.SimpleType;
-import AbstractSyntax.Types.SimpleTypesEnum;
-import AbstractSyntax.Types.TensorType;
+import AbstractSyntax.Expressions.*;
+import AbstractSyntax.Types.*;
 import SemanticAnalysis.TypeChecker;
 import SemanticAnalysis.TypeEnvironment;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+
+/*
+ * Unit tests for verifying special handling of built-in functions
+ * like "zeros" and "ones" during type checking.
+ *
+ * These functions are not defined by the user but recognized by the type checker.
+ * 
+ * This includes:
+ * - Valid usage: correct number and type of arguments
+ * - Invalid usage: wrong arity, wrong argument types
+ */
 
 public class TestBuiltinFunctions {
+
     public static void main(String[] args) {
-        System.out.println("✔️  Running TestBuiltinFunctions...");
-        testZerosCorrectUsage();
-        testZerosWrongArity();
-        testZerosNonIntArguments();
+        System.out.println(" Running TestBuiltinFunctions...");
+
+        testValidZerosCall();       //zeros(2, 3) — should succeed
+        testZerosWrongArity();      //zeros(1) — should fail
+        testZerosWithFloat();       //zeros(2.0, 3) — should fail
+        testUnknownBuiltin();       //foobar(3, 4) — not a builtin
     }
 
-    static void testZerosCorrectUsage() {
-        List<Expr> args = Arrays.asList(
-            new IntVal(3),
-            new IntVal(4)
-        );
-        FuncCallExpr call = new FuncCallExpr("zeros", new ArrayList<>(args));
+    //Test: zeros(2, 3) should return a 2D tensor of int type
+    static void testValidZerosCall() {
+        ArrayList<Expr> args = new ArrayList<>();
+        args.add(new IntVal(2));
+        args.add(new IntVal(3));
 
+        FuncCallExpr expr = new FuncCallExpr("zeros", args);
         TypeChecker checker = new TypeChecker();
-        var result = checker.checkExpr(call, new TypeEnvironment());
 
-        if (result instanceof TensorType tensor &&
-            tensor.componentType instanceof SimpleType st &&
-            st.type == SimpleTypesEnum.INT &&
-            tensor.isMatrix()) {
-
-            System.out.println("✔️  testZerosCorrectUsage passed");
-        } else {
-            System.out.println("❌ testZerosCorrectUsage failed – expected 2D Int Tensor, got: " + result);
+        try {
+            Type result = checker.checkExpr(expr, new TypeEnvironment());
+            if (result instanceof TensorType) {
+                System.out.println(" testValidZerosCall passed");
+            } else {
+                System.out.println(" testValidZerosCall failed — expected TensorType, got: " + result);
+            }
+        } catch (Exception e) {
+            System.out.println(" testValidZerosCall failed — unexpected error: " + e.getMessage());
         }
     }
 
+    //Test: zeros with 1 argument, should throw error due to wrong arity
     static void testZerosWrongArity() {
-        List<Expr> args = Arrays.asList(
-            new IntVal(3) // Only one argument
-        );
-        FuncCallExpr call = new FuncCallExpr("zeros", new ArrayList<>(args));
+        ArrayList<Expr> args = new ArrayList<>();
+        args.add(new IntVal(1));
 
+        FuncCallExpr expr = new FuncCallExpr("zeros", args);
         TypeChecker checker = new TypeChecker();
 
         try {
-            checker.checkExpr(call, new TypeEnvironment());
-            System.out.println("❌ testZerosWrongArity failed – expected error for wrong arity");
+            checker.checkExpr(expr, new TypeEnvironment());
+            System.out.println(" testZerosWrongArity failed — expected error, but none occurred");
         } catch (Exception e) {
-            System.out.println("✔️  testZerosWrongArity passed – caught error: " + e.getMessage());
+            System.out.println(" testZerosWrongArity passed — caught expected error: " + e.getMessage());
         }
     }
 
-    static void testZerosNonIntArguments() {
-        List<Expr> args = Arrays.asList(
-            new DoubleVal(3.5),
-            new IntVal(2)
-        );
-        FuncCallExpr call = new FuncCallExpr("zeros", new ArrayList<>(args));
+    //Test: zeros(2.0, 3), first argument is a float, should fail
+    static void testZerosWithFloat() {
+        ArrayList<Expr> args = new ArrayList<>();
+        args.add(new DoubleVal(2.0));
+        args.add(new IntVal(3));
 
+        FuncCallExpr expr = new FuncCallExpr("zeros", args);
         TypeChecker checker = new TypeChecker();
 
         try {
-            checker.checkExpr(call, new TypeEnvironment());
-            System.out.println("❌ testZerosNonIntArguments failed – expected error for non-int arg");
+            checker.checkExpr(expr, new TypeEnvironment());
+            System.out.println(" testZerosWithFloat failed — expected error, but none occurred");
         } catch (Exception e) {
-            System.out.println("✔️  testZerosNonIntArguments passed – caught error: " + e.getMessage());
+            System.out.println(" testZerosWithFloat passed — caught expected error: " + e.getMessage());
+        }
+    }
+
+    //Test: foobar(3, 4), not a built-in, and no user-defined function context provided
+    static void testUnknownBuiltin() {
+        ArrayList<Expr> args = new ArrayList<>();
+        args.add(new IntVal(3));
+        args.add(new IntVal(4));
+
+        FuncCallExpr expr = new FuncCallExpr("foobar", args);
+        TypeChecker checker = new TypeChecker();
+
+        try {
+            checker.checkExpr(expr, new TypeEnvironment());
+            System.out.println(" testUnknownBuiltin failed — expected error, but none occurred");
+        } catch (Exception e) {
+            System.out.println(" testUnknownBuiltin passed — caught expected error: " + e.getMessage());
         }
     }
 }

@@ -1,0 +1,10 @@
+func int add(int a, int b) {
+    return a + b;
+}
+
+func int main() {
+    int x = add(1);
+    return x;
+}
+
+//Description: Function "add" called with too few arguments; should fail

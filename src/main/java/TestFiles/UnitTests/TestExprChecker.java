@@ -99,7 +99,7 @@ public class TestExprChecker {
         }
     }
 
-    // Helper method to build TensorDefExpr from raw int matrix
+    //Helper method to build TensorDefExpr from raw int matrix.
     private static ArrayList<Expr> makeTensorLiteral(int[][] values) {
         ArrayList<Expr> outer = new ArrayList<>();
         for (int[] row : values) {
@@ -109,6 +109,6 @@ public class TestExprChecker {
             }
             outer.add(new TensorDefExpr(inner));
         }
-        return outer;
+            return outer;
     }
 }

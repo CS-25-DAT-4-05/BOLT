@@ -1,0 +1,5 @@
+func int identity(int x) {
+    return x;
+}
+
+//Description: Valid function with return statement

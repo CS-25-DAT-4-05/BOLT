@@ -1,0 +1,5 @@
+func int foo() {
+    return true;
+}
+
+//Description: Return statement returns boolean instead of int; should fail

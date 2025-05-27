@@ -1,0 +1,4 @@
+int main() {
+    int x = zeros(true, "bad"); // invalid args: should be two ints
+    return 0;
+}

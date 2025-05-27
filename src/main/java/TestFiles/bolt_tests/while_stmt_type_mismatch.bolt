@@ -1,0 +1,11 @@
+func int main() {
+    tensor[int, 1, 1] A = zeros(1, 1);
+
+    while A {
+        int x = 1;
+    }
+
+    return 0;
+}
+
+//Description: Condition in `while` is a tensor instead of boolean-compatible expression; should fail

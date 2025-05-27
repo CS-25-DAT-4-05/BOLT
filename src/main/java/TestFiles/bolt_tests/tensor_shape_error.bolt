@@ -1,5 +1,0 @@
-func: int main() {
-    int[2, 2] mat = {{1, 2}, {3, 4}};
-    int[2, 3] badMat = mat;  // shape mismatch
-    return 0;
-}

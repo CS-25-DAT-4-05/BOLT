@@ -32,7 +32,7 @@ public class TestStmtChecker {
     }
 
     //Test: Declaration with initializer
-    //Simulates "int x = 5;" — should typecheck successfully
+    //Simulates "int x = 5;", should typecheck successfully
     static void testValidDeclaration() {
         Expr init = new IntVal(5);
         Stmt decl = new Declaration(
@@ -54,7 +54,7 @@ public class TestStmtChecker {
     }
 
     //Test: Assignment to undeclared variable
-    //Simulates "x = 3;" — x is not in the environment, (should fail)
+    //Simulates "x = 3;", x is not in the environment, (should fail)
     static void testUndeclaredVariableAssignment() {
         Expr rhs = new IntVal(3);
         Expr lhs = new Ident("x");

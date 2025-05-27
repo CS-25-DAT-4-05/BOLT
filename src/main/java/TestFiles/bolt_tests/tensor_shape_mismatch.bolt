@@ -1,0 +1,4 @@
+tensor[int, 2, 2] A = [[1, 2], [3, 4]];
+tensor[int, 2, 2] B = [[1, 2], [3, 4], [5, 6]];
+
+//Description: Tensor B has incorrect shape; should fail

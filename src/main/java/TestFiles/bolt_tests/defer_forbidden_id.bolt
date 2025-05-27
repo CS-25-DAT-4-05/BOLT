@@ -1,4 +1,6 @@
-func: int main() {
-    i = 5;  // 'i' was not declared — and we're not inside a 'defer' block
-    return i;
+func int main() {
+    int defer = 5;
+    return defer;
 }
+
+//Description: Using `defer` as an identifier should fail; it's a reserved keyword
