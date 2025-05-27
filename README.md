@@ -19,140 +19,178 @@ BOLT addresses the complexity barrier in GPU programming by offering explicit bu
 - **GPU Execution Abstractions**: Simple `defer` blocks for GPU computation offloading without manual thread management
 - **Native Tensor Support**: Built-in support for vectors, matrices, and multi-dimensional tensors with compile-time type checking
 - **Automatic Memory Management**: Compiler handles GPU memory allocation, data transfers, and synchronization
-- **Static Type System**: Strong typing with parameterized tensor types for compile-time safety
+- **Static Type System**: Strong typing with tensor shape validation for compile-time safety
 
-## Language Design
-
-BOLT follows a transpiler architecture that converts BOLT source code into CUDA C++, allowing programs to leverage NVIDIA's mature compiler optimizations while providing a simplified programming interface.
-
-### Core Abstractions
-
-#### GPU Execution with `defer`
-```bolt
-func: int vectorAdd(tensor[int, 1000] A, tensor[int, 1000] B) {
-    tensor[int, 1000] result;
-    
-    defer[(i, 1000)] {
-        result[i] = A[i] + B[i];
-    }
-    
-    return sum(result);
-}
-```
-
-#### Tensor Types
-- **Vectors**: `vector[type, size]`
-- **Matrices**: `matrix[type, rows, cols]` 
-- **Tensors**: `tensor[type, dim1, dim2, ...]`
-
-#### Parametric Types
-```bolt
-func: tensor[int, n] scale(tensor[int, n] input, int factor) {
-    tensor[int, n] result;
-    defer[(i, n)] {
-        result[i] = input[i] * factor;
-    }
-    return result;
-}
-```
-
-## Architecture
-
-### Compiler Pipeline
-
-1. **Frontend (Coco/R)**
-   - Lexical analysis and parsing
-   - AST construction with embedded semantic actions
-   - LL(1) grammar for predictable parsing
-
-2. **Semantic Analysis**
-   - Type checking with tensor shape validation
-   - Symbol table management
-   - Static analysis for GPU/CPU data placement
-
-3. **Backend (Transpiler)**
-   - CUDA C++ code generation
-   - Memory management insertion
-   - Thread configuration automation
-
-### Type System
-
-BOLT implements a strong, static type system with:
-- Simple types: `int`, `double`, `char`, `bool`
-- Complex types.
-
-
-## Getting Started
+## Quick Start
 
 ### Prerequisites
 
 - Java 8 or higher
-- NVIDIA CUDA Toolkit (for generated code compilation)
-- Coco/R parser generator
-
-### Building BOLT
+- NVIDIA CUDA Toolkit (for compiling generated code)
+- `tensor.h` header file (provided)
 
 ### Running the Compiler
 
-```bash
-java -cp ".:lib/*" boltparser.Main examples/vector_add.bolt
+1. **Compile your BOLT program:**
+   ```bash
+   java -cp out/production/BOLT boltparser.Main your_program.bolt
+   ```
+
+2. **Compile the generated CUDA code:**
+   ```bash
+   nvcc -o your_program your_program.cu
+   ```
+
+3. **Run the executable:**
+   ```bash
+   ./your_program
+   ```
+
+## Language Syntax
+
+### Basic Structure
+```bolt
+func: return_type function_name() {
+    // variable declarations
+    // defer blocks for GPU computation
+    return value;
+}
+```
+
+### Tensor Types
+- **Vectors**: `vector[int, 5]` - 1D arrays
+- **Matrices**: `matrix[int, 3, 3]` - 2D arrays  
+- **Tensors**: `tensor[int, 2, 3, 4]` - Multi-dimensional arrays
+
+### GPU Computation with `defer`
+```bolt
+defer[(thread_var, size)] {
+    // GPU code here
+}
+
+defer[(i, rows), (j, cols)] {
+    // 2D GPU code here
+}
 ```
 
 ## Example Programs
 
-### Simple Vector Addition
+### 1. Vector Addition
 ```bolt
 func: int main() {
-    vector[int, 10] a = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
-    vector[int, 10] b = {10, 9, 8, 7, 6, 5, 4, 3, 2, 1};
-    vector[int, 10] result;
+    vector[int, 4] a = {1, 2, 3, 4};
+    vector[int, 4] b = {5, 6, 7, 8};
+    int multiplier = 10;
+
+    defer[(i, 4)] {
+        a[i] = a[i] + b[i] + multiplier;
+    }
+
+    return 0;
+}
+```
+
+### 2. Matrix Scaling
+```bolt
+func: int main() {
+    matrix[int, 3, 3] mat = {{1, 2, 3}, {4, 5, 6}, {7, 8, 9}};
+    int factor = 2;
     
-    defer[(i, 10)] {
-        result[i] = a[i] + b[i];
+    defer[(i, 3), (j, 3)] {
+        mat[i, j] = mat[i, j] * factor;
     }
     
     return 0;
 }
 ```
 
-### Matrix Multiplication
+### 3. Conditional Processing
 ```bolt
-func: matrix[int, m, n] matmul(matrix[int, m, k] A, matrix[int, k, n] B) {
-    matrix[int, m, n] result;
+func: int main() {
+    matrix[int, 4, 4] mat = {{1, 2, 3, 4}, {5, 6, 7, 8}, {9, 10, 11, 12}, {13, 14, 15, 16}};
+    int threshold = 8;
     
-    defer[(i, m), (j, n)] {
-        int sum = 0;
-        for (int idx = 0; idx < k; idx = idx + 1) {
-            sum = sum + A[i, idx] * B[idx, j];
+    defer[(i, 4), (j, 4)] {
+        if (mat[i, j] > threshold) {
+            mat[i, j] = mat[i, j] * 2;
+        } else {
+            mat[i, j] = 0;
         }
-        result[i, j] = sum;
     }
     
-    return result;
+    return 0;
 }
 ```
 
-
-## Language Specification
-
-### Grammar (EBNF)
-
-```ebnf
-Program = {FunctionDefinition}
-
-FunctionDefinition = 
-    "func:" Type IDENT "(" [FormalParameter {"," FormalParameter}] ")"
-    "{" FunctionBody "return" [Expression] ";" "}"
-
-Type = SimpleType | ComplexType
-
-SimpleType = "double" | "int" | "char" | "bool" | "void"
-
-ComplexType = 
-    "vector" "[" SimpleType "," SizeExpression "]" |
-    "matrix" "[" SimpleType "," SizeExpression "," SizeExpression "]" |
-    "tensor" "[" SimpleType "," SizeExpression {"," SizeExpression} "]"
+### 4. Loops in GPU Code
+```bolt
+func: int main() {
+    vector[int, 6] data = {1, 4, 9, 16, 25, 36};
+    int limit = 20;
+    
+    defer[(i, 6)] {
+        int value = data[i];
+        while (value > limit) do {
+            value = value - 5;
+        }
+        data[i] = value;
+    }
+    
+    return 0;
+}
 ```
+
+## Language Features
+
+### Control Flow
+- **Conditionals**: `if (condition) { } else { }`
+- **Loops**: `while (condition) do { }`
+- **Assignments**: `variable = expression;`
+- **Declarations**: `type variable = initial_value;`
+
+### Operators
+- **Arithmetic**: `+`, `-`, `*`, `/`, `%`
+- **Comparison**: `==`, `!=`, `<`, `<=`, `>`, `>=`
+- **Logical**: `&&`, `||`, `!`
+
+### Data Types
+- **Simple**: `int`, `double`, `char`, `bool`
+- **Tensor**: `vector[type, size]`, `matrix[type, rows, cols]`, `tensor[type, dim1, dim2, ...]`
+
+## Generated Output
+
+The BOLT compiler generates:
+- `program_name.cu` - Main CUDA file with host code
+- `kernels.h` - GPU kernel definitions
+- Automatic memory management (malloc, memcpy, free)
+- Proper thread configuration for 1D, 2D, and 3D grids
+
+## Architecture
+
+### Compiler Pipeline
+1. **Lexical & Syntax Analysis** (Coco/R)
+2. **AST Construction** 
+3. **Type Checking** with tensor shape validation
+4. **Control Flow Analysis** for memory transfer optimization
+5. **CUDA Code Generation** (Transpiler)
+
+### Memory Management
+- Automatic CPU ↔ GPU data transfers
+- Efficient memory allocation and cleanup
+- No manual CUDA memory management required
+
+## Project Status
+
+**Current Status**: Functional prototype with core features implemented
+
+**Working Features**:
+- Vector, matrix, and tensor operations
+- 1D, 2D, and 3D defer blocks
+- Control flow (if-else, while loops)
+- Automatic memory management
+- Type checking and validation
+- CUDA code generation
+
 
 For the complete grammar specification, see the project report
 
